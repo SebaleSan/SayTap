@@ -1,58 +1,78 @@
 package com.saytap.app.ui.theme
 
-import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
+
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
 
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+private val LightColors = lightColorScheme(
+    primary = Indigo700,
     onPrimary = Color.White,
+    primaryContainer = Indigo500,
+    onPrimaryContainer = Color.White,
+    secondary = Coral500,
     onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    secondaryContainer = Coral600,
+    onSecondaryContainer = Color.White,
+    background = BgApp,
+    onBackground = InkText,
+    surface = SurfaceColor,
+    onSurface = InkText,
+    surfaceVariant = BgApp,
+    onSurfaceVariant = InkSoft,
+    outline = BorderColor,
+    error = Coral600,
+    onError = Color.White
 )
+
+private val DarkColors = darkColorScheme(
+    primary = Indigo300Dark,
+    onPrimary = Indigo900,
+    primaryContainer = Indigo700,
+    onPrimaryContainer = Indigo200Dark,
+    secondary = Coral300Dark,
+    onSecondary = Indigo900,
+    secondaryContainer = Coral600,
+    onSecondaryContainer = Color.White,
+    background = BgAppDark,
+    onBackground = InkTextDark,
+    surface = SurfaceColorDark,
+    onSurface = InkTextDark,
+    surfaceVariant = BgAppDark,
+    onSurfaceVariant = InkSoftDark,
+    outline = BorderColorDark,
+    error = Coral300Dark,
+    onError = Indigo900
+)
+
+
 
 @Composable
 fun SayTapTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    textScale: Float = 1f,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
+    val colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
+    val baseDensity = LocalDensity.current
+    val scaledDensity = Density(
+        density = baseDensity.density,
+        fontScale = baseDensity.fontScale * textScale
     )
+
+    CompositionLocalProvider(LocalDensity provides scaledDensity) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = SayTapTypography,
+            content = content
+        )
+    }
 }

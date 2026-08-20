@@ -18,3 +18,21 @@ val BorderColor = Color(0xFFDCE0F0)
 
 val SuccessColor = Color(0xFF2E9E6B)
 val SuccessContainer = Color(0xFFE8F6EF)
+
+
+//paleta de colores para el modo oscuro
+
+val Indigo300Dark = Color(0xFFA9B4F5)
+val Indigo200Dark = Color(0xFFD3D9FB)
+
+val Coral300Dark = Color(0xFFFFB29E)
+
+val BgAppDark = Color(0xFF14162B)
+val SurfaceColorDark = Color(0xFF1E2140)
+val BorderColorDark = Color(0xFF33375E)
+
+val InkTextDark = Color(0xFFECEEF7)
+val InkSoftDark = Color(0xFFB4B8D1)
+
+val SuccessColorDark = Color(0xFF6FD9A8)
+val SuccessContainerDark = Color(0xFF1E3A2E)
