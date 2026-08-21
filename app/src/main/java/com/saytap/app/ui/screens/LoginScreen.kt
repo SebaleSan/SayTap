@@ -47,7 +47,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.saytap.app.data.UsuariosStore
-import com.saytap.app.navigation.Routes
+import com.saytap.app.navigation.Bienvenida
+import com.saytap.app.navigation.Registro
+import com.saytap.app.navigation.Recuperar
 import com.saytap.app.ui.components.SayTapTopBar
 import com.saytap.app.ui.theme.SayTapTheme
 import kotlinx.coroutines.launch
@@ -133,7 +135,7 @@ fun LoginScreen(
                     Checkbox(checked = recordarme, onCheckedChange = { recordarme = it })
                     Text("Recordarme", style = MaterialTheme.typography.bodyMedium)
                 }
-                TextButton(onClick = { navController.navigate(Routes.RECUPERAR) }) {
+                TextButton(onClick = { navController.navigate(Recuperar) }) {
                     Text("¿Olvidaste tu contraseña?")
                 }
             }
@@ -145,7 +147,7 @@ fun LoginScreen(
                     val usuario = UsuariosStore.autenticar(correo, contrasena)
                     scope.launch {
                         if (usuario != null) {
-                            navController.navigate("${Routes.BIENVENIDA}/${usuario.nombre}")
+                            navController.navigate(Bienvenida(nombre = usuario.nombre))
                         } else {
                             snackbarHostState.showSnackbar("Correo o contraseña incorrectos")
                         }
@@ -172,7 +174,7 @@ fun LoginScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable { navController.navigate(Routes.REGISTRO) }
+                    modifier = Modifier.clickable { navController.navigate(Registro) }
                 )
             }
 
@@ -186,7 +188,7 @@ fun LoginScreen(
             Spacer(Modifier.height(12.dp))
         }
     }
-
+// se muestra el array de usuarios simulados, donde tambien se guarda el usuario registrado
     if (mostrarUsuarios) {
         AlertDialog(
             onDismissRequest = { mostrarUsuarios = false },
