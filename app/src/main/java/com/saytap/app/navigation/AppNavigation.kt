@@ -4,11 +4,11 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.saytap.app.ui.screens.BienvenidaScreen
-import com.saytap.app.ui.screens.RegistroScreen
 import com.saytap.app.ui.screens.LoginScreen
 import com.saytap.app.ui.screens.RecuperarPasswordScreen
-
+import com.saytap.app.ui.screens.RegistroScreen
 
 @Composable
 fun AppNavigation(
@@ -17,9 +17,9 @@ fun AppNavigation(
 ) {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = Routes.LOGIN) {
+    NavHost(navController = navController, startDestination = Login) {
 
-        composable(Routes.LOGIN) {
+        composable<Login> {
             LoginScreen(
                 navController = navController,
                 textScale = textScale,
@@ -27,7 +27,7 @@ fun AppNavigation(
             )
         }
 
-        composable(Routes.REGISTRO) {
+        composable<Registro> {
             RegistroScreen(
                 navController = navController,
                 textScale = textScale,
@@ -35,24 +35,22 @@ fun AppNavigation(
             )
         }
 
-        composable(Routes.RECUPERAR) {
+        composable<Recuperar> {
             RecuperarPasswordScreen(
                 navController = navController,
                 textScale = textScale,
                 onTextScaleChange = onTextScaleChange
             )
         }
-
-        composable(Routes.BIENVENIDA + "/{nombre}") { backStackEntry ->
-            val nombre = backStackEntry.arguments?.getString("nombre") ?: ""
+    //se recibe el dato de nombre para mostrarlo en la siguiente vista
+        composable<Bienvenida> { backStackEntry ->
+            val datos: Bienvenida = backStackEntry.toRoute()
             BienvenidaScreen(
                 navController = navController,
-                nombreUsuario = nombre,
+                nombreUsuario = datos.nombre,
                 textScale = textScale,
                 onTextScaleChange = onTextScaleChange
             )
         }
-
-
     }
 }
