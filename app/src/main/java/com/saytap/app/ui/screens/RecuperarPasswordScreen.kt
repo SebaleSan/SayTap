@@ -35,7 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.saytap.app.navigation.Routes
+import com.saytap.app.navigation.Login
 import com.saytap.app.ui.components.SayTapTopBar
 import com.saytap.app.ui.theme.SuccessColor
 import com.saytap.app.ui.theme.SuccessContainer
@@ -54,7 +54,6 @@ fun RecuperarPasswordScreen(
 ) {
     var correo by remember { mutableStateOf("") }
     var metodoSeleccionado by remember { mutableStateOf(metodosRecuperacion[0]) }
-    var respuestaSeguridad by remember { mutableStateOf("") }
     var solicitudEnviada by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -145,7 +144,7 @@ fun RecuperarPasswordScreen(
             Spacer(Modifier.height(10.dp))
 
             OutlinedButton(
-                onClick = { navController.popBackStack(Routes.LOGIN, inclusive = false) },
+                onClick = { navController.popBackStack(route = Login, inclusive = false) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),

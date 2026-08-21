@@ -44,6 +44,7 @@ import com.saytap.app.ui.theme.SayTapTheme
 import kotlinx.coroutines.launch
 
 private val gradosAuditivos = listOf("Leve", "Moderada", "Severa")
+//se selecciona un genero de voz para el texto a voz
 private val generosVoz = listOf("Voz femenina", "Voz masculina")
 
 
@@ -133,7 +134,7 @@ fun RegistroScreen(
 
             Spacer(Modifier.height(18.dp))
 
-
+// se registra el grado de perdida auditiva para implementacion de futuras funcionalidades de al app
             Text("Grado de pérdida auditiva", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(6.dp))
             ExposedDropdownMenuBox(
@@ -170,10 +171,10 @@ fun RegistroScreen(
 
             Text("Preferencias de accesibilidad", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(4.dp))
-
+// Permitira feedback aptico al utilizar la app
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = alertasVibracion, onCheckedChange = { alertasVibracion = it })
-                Text("Alertas por vibración", style = MaterialTheme.typography.bodyMedium)
+                Text("Feedback por vibración al realizar acciones", style = MaterialTheme.typography.bodyMedium)
             }
 
             Spacer(Modifier.height(16.dp))
@@ -192,14 +193,14 @@ fun RegistroScreen(
             }
 
             Spacer(Modifier.height(16.dp))
-
+//simulacion de TyC
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = aceptaTerminos, onCheckedChange = { aceptaTerminos = it })
                 Text("Acepto los términos y condiciones", style = MaterialTheme.typography.bodyMedium)
             }
 
             Spacer(Modifier.height(18.dp))
-
+// se comprueba datos requeridos para registro
             Button(
                 onClick = {
                     scope.launch {
