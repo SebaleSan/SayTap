@@ -171,7 +171,7 @@ fun RegistroScreen(
 
             Text("Preferencias de accesibilidad", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(4.dp))
-// Permitira feedback aptico al utilizar la app
+// Permitira feedback haptico al utilizar la app
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = alertasVibracion, onCheckedChange = { alertasVibracion = it })
                 Text("Feedback por vibración al realizar acciones", style = MaterialTheme.typography.bodyMedium)
