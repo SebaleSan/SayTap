@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -182,13 +185,20 @@ fun RegistroScreen(
 
             Text("Voz para reproducir tus frases en voz alta", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(4.dp))
-            generosVoz.forEach { opcion ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(
-                        selected = generoVozSeleccionado == opcion,
-                        onClick = { generoVozSeleccionado = opcion }
-                    )
-                    Text(opcion, style = MaterialTheme.typography.bodyMedium)
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                items(generosVoz) { opcion ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = generoVozSeleccionado == opcion,
+                            onClick = { generoVozSeleccionado = opcion }
+                        )
+                        Text(opcion, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
 
