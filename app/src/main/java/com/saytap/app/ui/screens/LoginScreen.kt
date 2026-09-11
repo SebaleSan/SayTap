@@ -53,6 +53,7 @@ import com.saytap.app.navigation.Recuperar
 import com.saytap.app.ui.components.SayTapTopBar
 import com.saytap.app.ui.theme.SayTapTheme
 import kotlinx.coroutines.launch
+import com.saytap.app.util.esCorreoValido
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +67,8 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var recordarme by remember { mutableStateOf(false) }
     var mostrarUsuarios by remember { mutableStateOf(false) }
+
+    val esCorreoInvalido = correo.isNotEmpty() && !correo.esCorreoValido()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -101,6 +104,10 @@ fun LoginScreen(
                 label = { Text("Correo electrónico") },
                 leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
                 singleLine = true,
+                isError = esCorreoInvalido,
+                supportingText = if (esCorreoInvalido) {
+                    { Text("Formato de correo invalido") }
+                }else null,
                 modifier = Modifier.fillMaxWidth()
             )
 

@@ -152,7 +152,7 @@ fun RecuperarPasswordScreen(
             ) {
                 Text("Volver a iniciar sesión", fontWeight = FontWeight.SemiBold)
             }
-
+// por temas de seguridad se devuelve un mensaje independiente de si el correo existe o no.
             if (solicitudEnviada) {
                 Spacer(Modifier.height(16.dp))
                 Card(
