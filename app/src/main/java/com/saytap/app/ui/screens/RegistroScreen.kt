@@ -45,6 +45,9 @@ import com.saytap.app.data.UsuariosStore
 import com.saytap.app.ui.components.SayTapTopBar
 import com.saytap.app.ui.theme.SayTapTheme
 import kotlinx.coroutines.launch
+import com.saytap.app.util.esCorreoValido
+import com.saytap.app.util.esPasswordValida
+import com.saytap.app.util.requisitosFaltantesPassword
 
 private val gradosAuditivos = listOf("Leve", "Moderada", "Severa")
 //se selecciona un genero de voz para el texto a voz
@@ -62,6 +65,11 @@ fun RegistroScreen(
     var correo by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
     var confirmarContrasena by remember { mutableStateOf("") }
+
+    val esCorreoInvalido = correo.isNotEmpty() && !correo.esCorreoValido()
+    val requisitosFaltantes = contrasena.requisitosFaltantesPassword()
+    val esPasswordInvalida = contrasena.isNotEmpty() && !contrasena.esPasswordValida()
+    val noCoinciden = confirmarContrasena.isNotEmpty() && contrasena != confirmarContrasena
 
 
     var gradoExpandido by remember { mutableStateOf(false) }
@@ -108,12 +116,17 @@ fun RegistroScreen(
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(12.dp))
-
+/** utilizando isError y supportingText se entrega un feedback visual al
+     * usuario directamente bajo el campo que presenta errores*/
             OutlinedTextField(
                 value = correo,
                 onValueChange = { correo = it },
                 label = { Text("Correo electrónico") },
                 singleLine = true,
+                isError = esCorreoInvalido,
+                supportingText = if(esCorreoInvalido) {
+                    { Text("Correo electrónico inválido") }
+                } else null,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(12.dp))
@@ -123,6 +136,10 @@ fun RegistroScreen(
                 onValueChange = { contrasena = it },
                 label = { Text("Contraseña") },
                 singleLine = true,
+                isError = esPasswordInvalida,
+                supportingText = if (esPasswordInvalida) {
+                    { Text("Requisitos: ${requisitosFaltantes.joinToString(", ")}") }
+                } else null,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(12.dp))
@@ -132,6 +149,10 @@ fun RegistroScreen(
                 onValueChange = { confirmarContrasena = it },
                 label = { Text("Confirmar contraseña") },
                 singleLine = true,
+                isError = noCoinciden,
+                supportingText = if (noCoinciden) {
+                    { Text("Las contraseñas no coinciden") }
+                } else null,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -218,6 +239,13 @@ fun RegistroScreen(
                             nombre.isBlank() || correo.isBlank() || contrasena.isBlank() -> {
                                 snackbarHostState.showSnackbar("Completa todos los campos obligatorios")
                             }
+                            esCorreoInvalido || esPasswordInvalida || noCoinciden -> {
+                                snackbarHostState.showSnackbar("Por favor, corrige los errores en el formulario")
+                            }
+                            !contrasena.esPasswordValida() -> {
+                                val faltan = contrasena.requisitosFaltantesPassword().joinToString(", ")
+                                snackbarHostState.showSnackbar("La contraseña debe tener: $faltan")
+                            }
                             contrasena != confirmarContrasena -> {
                                 snackbarHostState.showSnackbar("Las contraseñas no coinciden")
                             }
@@ -240,8 +268,7 @@ fun RegistroScreen(
                                 snackbarHostState.showSnackbar("Cuenta creada. Ahora puedes iniciar sesión")
                                 navController.popBackStack()
                             }
-                        }
-                    }
+                        }                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
