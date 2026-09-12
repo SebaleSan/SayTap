@@ -1,5 +1,6 @@
 package com.saytap.app.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -33,12 +34,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.saytap.app.navigation.Login
 import com.saytap.app.ui.components.SayTapTopBar
 import com.saytap.app.ui.theme.SuccessColor
 import com.saytap.app.ui.theme.SuccessContainer
+import androidx.navigation.compose.rememberNavController
+import com.saytap.app.data.UsuariosStore
+import com.saytap.app.ui.theme.SayTapTheme
 
 private val metodosRecuperacion = listOf(
     "Enviar enlace al correo",
@@ -130,7 +135,19 @@ fun RecuperarPasswordScreen(
             Spacer(Modifier.height(20.dp))
 
             Button(
-                onClick = { solicitudEnviada = true },
+                onClick = {
+                    // Verificacion interna, solo se comprueba si el
+                    // correo existe en el arreglo de usuarios, pero el resultado NUNCA
+                    // se expone al usuario. Informar esto en pantalla sería una
+                    // vulnerabilidad de "enumeración de usuarios" (OWASP) permitiría a
+                    // un atacante confirmar, correo por correo, cuáles cuentas existen
+                    // en el sistema. Por eso el mensaje mostrado es siempre el mismo,
+                    // exista o no el correo.
+                    val correoExiste = UsuariosStore.existeCorreo(correo)
+                    Log.d("SayTap", "Solicitud de recuperación recibida. ¿Correo registrado?: $correoExiste")
+
+                    solicitudEnviada = true
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
@@ -152,7 +169,7 @@ fun RecuperarPasswordScreen(
             ) {
                 Text("Volver a iniciar sesión", fontWeight = FontWeight.SemiBold)
             }
-// por temas de seguridad se devuelve un mensaje independiente de si el correo existe o no.
+// por temas de seguridad se devuelve  mensaje independiente de si el correo existe o no.
             if (solicitudEnviada) {
                 Spacer(Modifier.height(16.dp))
                 Card(
@@ -169,6 +186,19 @@ fun RecuperarPasswordScreen(
 
             Spacer(Modifier.height(20.dp))
         }
+    }
+}
+
+
+@Preview(showBackground = true)
+@Composable
+fun RecuperarPasswordPreview() {
+    SayTapTheme {
+        RecuperarPasswordScreen(
+            navController = rememberNavController(),
+            textScale = 1f,
+            onTextScaleChange = {}
+        )
     }
 }
 
