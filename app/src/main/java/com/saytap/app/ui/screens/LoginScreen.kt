@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -195,7 +198,7 @@ fun LoginScreen(
             Spacer(Modifier.height(12.dp))
         }
     }
-// se muestra el array de usuarios simulados, donde tambien se guarda el usuario registrado
+// se muestra el array de usuarios simulados, donde tambien se guarda los nuevos usuarios registrados desde la app
     if (mostrarUsuarios) {
         AlertDialog(
             onDismissRequest = { mostrarUsuarios = false },
@@ -217,11 +220,15 @@ fun LoginScreen(
                         Text("Grado", modifier = Modifier.weight(0.8f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
                     }
                     Spacer(Modifier.padding(vertical = 6.dp))
-                    UsuariosStore.usuarios.forEach { u ->
-                        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                            Text(u.nombre, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                            Text(u.correo, modifier = Modifier.weight(1.3f), style = MaterialTheme.typography.bodySmall)
-                            Text(u.gradoAuditivo, modifier = Modifier.weight(0.8f), style = MaterialTheme.typography.bodySmall)
+
+                    // Lista dinámica de usuarios: crece con cada registro nuevo
+                    LazyColumn(modifier = Modifier.heightIn(max = 260.dp)) {
+                        items(UsuariosStore.usuarios) { u ->
+                            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Text(u.nombre, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                                Text(u.correo, modifier = Modifier.weight(1.3f), style = MaterialTheme.typography.bodySmall)
+                                Text(u.gradoAuditivo, modifier = Modifier.weight(0.8f), style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
                 }
