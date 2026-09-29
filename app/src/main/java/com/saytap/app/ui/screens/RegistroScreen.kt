@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -59,6 +61,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
 import com.saytap.app.data.AuthRepository
 import com.saytap.app.util.mensajeAmigable
+import kotlinx.coroutines.delay
 
 
 private val gradosAuditivos = listOf("Leve", "Moderada", "Severa")
@@ -94,6 +97,8 @@ fun RegistroScreen(
 
     var generoVozSeleccionado by remember { mutableStateOf(generosVoz[0]) }
     var aceptaTerminos by remember { mutableStateOf(false) }
+
+    var registrando by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -131,8 +136,8 @@ fun RegistroScreen(
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(12.dp))
-/** utilizando isError y supportingText se entrega un feedback visual al
-     * usuario directamente bajo el campo que presenta errores*/
+            /** utilizando isError y supportingText se entrega un feedback visual al
+             * usuario directamente bajo el campo que presenta errores*/
             OutlinedTextField(
                 value = correo,
                 onValueChange = { correo = it },
@@ -292,29 +297,48 @@ fun RegistroScreen(
                                 snackbarHostState.showSnackbar("Debes aceptar los términos y condiciones")
                             }
                             else -> {
-                                AuthRepository.registrarUsuario(
+                                registrando = true
+                                val inicio = System.currentTimeMillis()
+                                val resultado = AuthRepository.registrarUsuario(
                                     correo = correo.trim(),
                                     contrasena = contrasena,
                                     nombre = nombre.trim(),
                                     gradoAuditivo = gradoSeleccionado,
                                     generoVoz = generoVozSeleccionado
-                                ).onSuccess {
+                                )
+                                val transcurrido = System.currentTimeMillis() - inicio
+                                if (transcurrido < 300) delay(300 - transcurrido)
+
+                                resultado.onSuccess {
+                                    registrando = false
                                     snackbarHostState.showSnackbar("Cuenta creada. Ahora puedes iniciar sesión")
                                     navController.popBackStack()
                                 }.onFailure { error ->
+                                    registrando = false
                                     snackbarHostState.showSnackbar(error.mensajeAmigable())
                                 }
                             }
                         }
                     }
                 },
+                enabled = !registrando,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
             ) {
-                Text("Crear cuenta", fontWeight = FontWeight.SemiBold)
+                if (registrando) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .height(20.dp)
+                            .width(20.dp),
+                        color = MaterialTheme.colorScheme.onSecondary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Crear cuenta", fontWeight = FontWeight.SemiBold)
+                }
             }
 
             Spacer(Modifier.height(24.dp))
