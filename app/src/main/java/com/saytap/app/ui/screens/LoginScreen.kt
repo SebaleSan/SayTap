@@ -63,7 +63,6 @@ import com.saytap.app.data.AuthRepository
 import com.saytap.app.util.mensajeAmigable
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.layout.Box
-import androidx.compose.ui.Alignment
 import com.saytap.app.data.Usuario
 
 @OptIn(ExperimentalMaterial3Api::class)

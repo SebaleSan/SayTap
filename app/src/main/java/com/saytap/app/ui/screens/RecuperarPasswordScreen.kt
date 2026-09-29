@@ -45,8 +45,11 @@ import com.saytap.app.ui.components.SayTapTopBar
 import com.saytap.app.ui.theme.SuccessColor
 import com.saytap.app.ui.theme.SuccessContainer
 import androidx.navigation.compose.rememberNavController
-import com.saytap.app.data.UsuariosStore
 import com.saytap.app.ui.theme.SayTapTheme
+import androidx.compose.runtime.rememberCoroutineScope
+import com.saytap.app.data.AuthRepository
+import com.saytap.app.util.mensajeAmigable
+import kotlinx.coroutines.launch
 
 private val metodosRecuperacion = listOf(
     "Enviar enlace al correo",
@@ -63,6 +66,7 @@ fun RecuperarPasswordScreen(
     var correo by remember { mutableStateOf("") }
     var metodoSeleccionado by remember { mutableStateOf(metodosRecuperacion[0]) }
     var solicitudEnviada by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = { SayTapTopBar(textScale = textScale, onScaleChange = onTextScaleChange) }
@@ -144,17 +148,20 @@ fun RecuperarPasswordScreen(
 
             Button(
                 onClick = {
-                    // Verificacion interna, solo se comprueba si el
-                    // correo existe en el arreglo de usuarios, pero el resultado NUNCA
-                    // se expone al usuario. Informar esto en pantalla sería una
-                    // vulnerabilidad de "enumeración de usuarios" (OWASP) permitiría a
-                    // un atacante confirmar, correo por correo, cuáles cuentas existen
-                    // en el sistema. Por eso el mensaje mostrado es siempre el mismo,
-                    // exista o no el correo.
-                    val correoExiste = UsuariosStore.existeCorreo(correo)
-                    Log.d("SayTap", "Solicitud de recuperación recibida. ¿Correo registrado?: $correoExiste")
-
-                    solicitudEnviada = true
+                    scope.launch {
+                        // Firebase Auth ya protege contra enumeración de usuarios:
+                        // sendPasswordResetEmail() se resuelve como éxito exista o no
+                        // el correo, sin filtrar esa información. Por eso mostramos
+                        // el mismo mensaje genérico sin importar el resultado real.
+                        AuthRepository.enviarRecuperacion(correo.trim())
+                            .onSuccess {
+                                Log.d("SayTap", "Solicitud de recuperación procesada para: $correo")
+                            }
+                            .onFailure { error ->
+                                Log.d("SayTap", "Error al procesar recuperación: ${error.mensajeAmigable()}")
+                            }
+                        solicitudEnviada = true
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
