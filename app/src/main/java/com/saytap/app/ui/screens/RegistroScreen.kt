@@ -7,16 +7,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -33,17 +41,31 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.saytap.app.data.Usuario
-import com.saytap.app.data.UsuariosStore
 import com.saytap.app.ui.components.SayTapTopBar
 import com.saytap.app.ui.theme.SayTapTheme
 import kotlinx.coroutines.launch
+import com.saytap.app.util.esCorreoValido
+import com.saytap.app.util.esPasswordValida
+import com.saytap.app.util.requisitosFaltantesPassword
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Icon
+import com.saytap.app.data.AuthRepository
+import com.saytap.app.util.mensajeAmigable
+import kotlinx.coroutines.delay
+
 
 private val gradosAuditivos = listOf("Leve", "Moderada", "Severa")
+//se selecciona un genero de voz para el texto a voz
 private val generosVoz = listOf("Voz femenina", "Voz masculina")
 
 
@@ -59,14 +81,24 @@ fun RegistroScreen(
     var contrasena by remember { mutableStateOf("") }
     var confirmarContrasena by remember { mutableStateOf("") }
 
+    val esCorreoInvalido = correo.isNotEmpty() && !correo.esCorreoValido()
+    val requisitosFaltantes = contrasena.requisitosFaltantesPassword()
+    val esPasswordInvalida = contrasena.isNotEmpty() && !contrasena.esPasswordValida()
+    val noCoinciden = confirmarContrasena.isNotEmpty() && contrasena != confirmarContrasena
+
 
     var gradoExpandido by remember { mutableStateOf(false) }
     var gradoSeleccionado by remember { mutableStateOf(gradosAuditivos[1]) }
+
+    var passwordVisible by remember { mutableStateOf(false) }
+    var confirmarPasswordVisible by remember { mutableStateOf(false) }
 
     var alertasVibracion by remember { mutableStateOf(true) }
 
     var generoVozSeleccionado by remember { mutableStateOf(generosVoz[0]) }
     var aceptaTerminos by remember { mutableStateOf(false) }
+
+    var registrando by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -104,12 +136,22 @@ fun RegistroScreen(
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(12.dp))
-
+            /** utilizando isError y supportingText se entrega un feedback visual al
+             * usuario directamente bajo el campo que presenta errores*/
             OutlinedTextField(
                 value = correo,
                 onValueChange = { correo = it },
                 label = { Text("Correo electrónico") },
                 singleLine = true,
+                isError = esCorreoInvalido,
+                supportingText = if(esCorreoInvalido) {
+                    { Text("Correo electrónico inválido") }
+                } else null,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    autoCorrectEnabled = false,
+                    capitalization = KeyboardCapitalization.None
+                ),
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(12.dp))
@@ -119,6 +161,23 @@ fun RegistroScreen(
                 onValueChange = { contrasena = it },
                 label = { Text("Contraseña") },
                 singleLine = true,
+                isError = esPasswordInvalida,
+                supportingText = if (esPasswordInvalida) {
+                    { Text("Requisitos: ${requisitosFaltantes.joinToString(", ")}") }
+                } else null,
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña"
+                        )
+                    }
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    autoCorrectEnabled = false
+                ),
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(12.dp))
@@ -128,12 +187,29 @@ fun RegistroScreen(
                 onValueChange = { confirmarContrasena = it },
                 label = { Text("Confirmar contraseña") },
                 singleLine = true,
+                isError = noCoinciden,
+                supportingText = if (noCoinciden) {
+                    { Text("Las contraseñas no coinciden") }
+                } else null,
+                visualTransformation = if (confirmarPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { confirmarPasswordVisible = !confirmarPasswordVisible }) {
+                        Icon(
+                            imageVector = if (confirmarPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = if (confirmarPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña"
+                        )
+                    }
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    autoCorrectEnabled = false
+                ),
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(Modifier.height(18.dp))
 
-
+// se registra el grado de perdida auditiva para implementacion de futuras funcionalidades de al app
             Text("Grado de pérdida auditiva", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(6.dp))
             ExposedDropdownMenuBox(
@@ -170,10 +246,10 @@ fun RegistroScreen(
 
             Text("Preferencias de accesibilidad", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(4.dp))
-
+// Permitira feedback haptico al utilizar la app
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = alertasVibracion, onCheckedChange = { alertasVibracion = it })
-                Text("Alertas por vibración", style = MaterialTheme.typography.bodyMedium)
+                Text("Feedback por vibración al realizar acciones", style = MaterialTheme.typography.bodyMedium)
             }
 
             Spacer(Modifier.height(16.dp))
@@ -181,25 +257,32 @@ fun RegistroScreen(
 
             Text("Voz para reproducir tus frases en voz alta", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(4.dp))
-            generosVoz.forEach { opcion ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(
-                        selected = generoVozSeleccionado == opcion,
-                        onClick = { generoVozSeleccionado = opcion }
-                    )
-                    Text(opcion, style = MaterialTheme.typography.bodyMedium)
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                items(generosVoz) { opcion ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = generoVozSeleccionado == opcion,
+                            onClick = { generoVozSeleccionado = opcion }
+                        )
+                        Text(opcion, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
 
             Spacer(Modifier.height(16.dp))
-
+//simulacion de TyC
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = aceptaTerminos, onCheckedChange = { aceptaTerminos = it })
                 Text("Acepto los términos y condiciones", style = MaterialTheme.typography.bodyMedium)
             }
 
             Spacer(Modifier.height(18.dp))
-
+// se comprueba datos requeridos para registro
             Button(
                 onClick = {
                     scope.launch {
@@ -207,38 +290,55 @@ fun RegistroScreen(
                             nombre.isBlank() || correo.isBlank() || contrasena.isBlank() -> {
                                 snackbarHostState.showSnackbar("Completa todos los campos obligatorios")
                             }
-                            contrasena != confirmarContrasena -> {
-                                snackbarHostState.showSnackbar("Las contraseñas no coinciden")
-                            }
-                            UsuariosStore.existeCorreo(correo) -> {
-                                snackbarHostState.showSnackbar("Ese correo ya está registrado")
+                            esCorreoInvalido || esPasswordInvalida || noCoinciden -> {
+                                snackbarHostState.showSnackbar("Por favor, corrige los errores en el formulario")
                             }
                             !aceptaTerminos -> {
                                 snackbarHostState.showSnackbar("Debes aceptar los términos y condiciones")
                             }
                             else -> {
-                                UsuariosStore.usuarios.add(
-                                    Usuario(
-                                        nombre = nombre.trim(),
-                                        correo = correo.trim(),
-                                        contrasena = contrasena,
-                                        gradoAuditivo = gradoSeleccionado,
-                                        generoVoz = generoVozSeleccionado
-                                    )
+                                registrando = true
+                                val inicio = System.currentTimeMillis()
+                                val resultado = AuthRepository.registrarUsuario(
+                                    correo = correo.trim(),
+                                    contrasena = contrasena,
+                                    nombre = nombre.trim(),
+                                    gradoAuditivo = gradoSeleccionado,
+                                    generoVoz = generoVozSeleccionado
                                 )
-                                snackbarHostState.showSnackbar("Cuenta creada. Ahora puedes iniciar sesión")
-                                navController.popBackStack()
+                                val transcurrido = System.currentTimeMillis() - inicio
+                                if (transcurrido < 300) delay(300 - transcurrido)
+
+                                resultado.onSuccess {
+                                    registrando = false
+                                    snackbarHostState.showSnackbar("Cuenta creada. Ahora puedes iniciar sesión")
+                                    navController.popBackStack()
+                                }.onFailure { error ->
+                                    registrando = false
+                                    snackbarHostState.showSnackbar(error.mensajeAmigable())
+                                }
                             }
                         }
                     }
                 },
+                enabled = !registrando,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
             ) {
-                Text("Crear cuenta", fontWeight = FontWeight.SemiBold)
+                if (registrando) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .height(20.dp)
+                            .width(20.dp),
+                        color = MaterialTheme.colorScheme.onSecondary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Crear cuenta", fontWeight = FontWeight.SemiBold)
+                }
             }
 
             Spacer(Modifier.height(24.dp))

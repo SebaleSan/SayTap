@@ -1,5 +1,6 @@
 package com.saytap.app.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -33,12 +35,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.saytap.app.navigation.Routes
+import com.saytap.app.navigation.Login
 import com.saytap.app.ui.components.SayTapTopBar
 import com.saytap.app.ui.theme.SuccessColor
 import com.saytap.app.ui.theme.SuccessContainer
+import androidx.navigation.compose.rememberNavController
+import com.saytap.app.ui.theme.SayTapTheme
+import androidx.compose.runtime.rememberCoroutineScope
+import com.saytap.app.data.AuthRepository
+import com.saytap.app.util.mensajeAmigable
+import kotlinx.coroutines.launch
 
 private val metodosRecuperacion = listOf(
     "Enviar enlace al correo",
@@ -54,8 +65,8 @@ fun RecuperarPasswordScreen(
 ) {
     var correo by remember { mutableStateOf("") }
     var metodoSeleccionado by remember { mutableStateOf(metodosRecuperacion[0]) }
-    var respuestaSeguridad by remember { mutableStateOf("") }
     var solicitudEnviada by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = { SayTapTopBar(textScale = textScale, onScaleChange = onTextScaleChange) }
@@ -86,6 +97,11 @@ fun RecuperarPasswordScreen(
                 onValueChange = { correo = it },
                 label = { Text("Correo asociado a tu cuenta") },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    autoCorrectEnabled = false,
+                    capitalization = KeyboardCapitalization.None
+                ),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -131,7 +147,22 @@ fun RecuperarPasswordScreen(
             Spacer(Modifier.height(20.dp))
 
             Button(
-                onClick = { solicitudEnviada = true },
+                onClick = {
+                    scope.launch {
+                        // Firebase Auth ya protege contra enumeración de usuarios:
+                        // sendPasswordResetEmail() se resuelve como éxito exista o no
+                        // el correo, sin filtrar esa información. Por eso mostramos
+                        // el mismo mensaje genérico sin importar el resultado real.
+                        AuthRepository.enviarRecuperacion(correo.trim())
+                            .onSuccess {
+                                Log.d("SayTap", "Solicitud de recuperación procesada para: $correo")
+                            }
+                            .onFailure { error ->
+                                Log.d("SayTap", "Error al procesar recuperación: ${error.mensajeAmigable()}")
+                            }
+                        solicitudEnviada = true
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
@@ -145,7 +176,7 @@ fun RecuperarPasswordScreen(
             Spacer(Modifier.height(10.dp))
 
             OutlinedButton(
-                onClick = { navController.popBackStack(Routes.LOGIN, inclusive = false) },
+                onClick = { navController.popBackStack(route = Login, inclusive = false) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
@@ -153,7 +184,7 @@ fun RecuperarPasswordScreen(
             ) {
                 Text("Volver a iniciar sesión", fontWeight = FontWeight.SemiBold)
             }
-
+// por temas de seguridad se devuelve  mensaje independiente de si el correo existe o no.
             if (solicitudEnviada) {
                 Spacer(Modifier.height(16.dp))
                 Card(
@@ -170,6 +201,19 @@ fun RecuperarPasswordScreen(
 
             Spacer(Modifier.height(20.dp))
         }
+    }
+}
+
+
+@Preview(showBackground = true)
+@Composable
+fun RecuperarPasswordPreview() {
+    SayTapTheme {
+        RecuperarPasswordScreen(
+            navController = rememberNavController(),
+            textScale = 1f,
+            onTextScaleChange = {}
+        )
     }
 }
 

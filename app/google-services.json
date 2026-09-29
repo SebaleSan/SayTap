@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "487810903380",
+    "project_id": "saytap-8236c",
+    "storage_bucket": "saytap-8236c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:487810903380:android:1dc446af31641302e06cc1",
+        "android_client_info": {
+          "package_name": "com.saytap.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBNiYP3phF724FGoGGZ5P48mspoEbvQLY4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

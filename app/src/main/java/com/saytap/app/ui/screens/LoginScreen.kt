@@ -8,9 +8,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
@@ -40,17 +44,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.saytap.app.data.UsuariosStore
-import com.saytap.app.navigation.Routes
+import com.saytap.app.navigation.Bienvenida
+import com.saytap.app.navigation.Registro
+import com.saytap.app.navigation.Recuperar
 import com.saytap.app.ui.components.SayTapTopBar
 import com.saytap.app.ui.theme.SayTapTheme
 import kotlinx.coroutines.launch
+import com.saytap.app.util.esCorreoValido
+import com.saytap.app.data.AuthRepository
+import com.saytap.app.util.mensajeAmigable
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.Box
+import com.saytap.app.data.Usuario
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,6 +77,10 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var recordarme by remember { mutableStateOf(false) }
     var mostrarUsuarios by remember { mutableStateOf(false) }
+    var usuariosFirebase by remember { mutableStateOf<List<Usuario>>(emptyList()) }
+    var cargandoUsuarios by remember { mutableStateOf(false) }
+
+    val esCorreoInvalido = correo.isNotEmpty() && !correo.esCorreoValido()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -99,6 +116,15 @@ fun LoginScreen(
                 label = { Text("Correo electrónico") },
                 leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
                 singleLine = true,
+                isError = esCorreoInvalido,
+                supportingText = if (esCorreoInvalido) {
+                    { Text("Formato de correo invalido") }
+                }else null,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    autoCorrectEnabled = false,
+                    capitalization = KeyboardCapitalization.None
+                ),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -133,7 +159,7 @@ fun LoginScreen(
                     Checkbox(checked = recordarme, onCheckedChange = { recordarme = it })
                     Text("Recordarme", style = MaterialTheme.typography.bodyMedium)
                 }
-                TextButton(onClick = { navController.navigate(Routes.RECUPERAR) }) {
+                TextButton(onClick = { navController.navigate(Recuperar) }) {
                     Text("¿Olvidaste tu contraseña?")
                 }
             }
@@ -142,12 +168,23 @@ fun LoginScreen(
 
             Button(
                 onClick = {
-                    val usuario = UsuariosStore.autenticar(correo, contrasena)
                     scope.launch {
-                        if (usuario != null) {
-                            navController.navigate("${Routes.BIENVENIDA}/${usuario.nombre}")
-                        } else {
-                            snackbarHostState.showSnackbar("Correo o contraseña incorrectos")
+                        when {
+                            correo.isBlank() || contrasena.isBlank() -> {
+                                snackbarHostState.showSnackbar("Completa correo y contraseña")
+                            }
+                            esCorreoInvalido -> {
+                                snackbarHostState.showSnackbar("Ingresa un correo con formato válido")
+                            }
+                            else -> {
+                                AuthRepository.iniciarSesion(correo, contrasena)
+                                    .onSuccess { usuario ->
+                                        navController.navigate(Bienvenida(nombre = usuario.nombre))
+                                    }
+                                    .onFailure { error ->
+                                        snackbarHostState.showSnackbar(error.mensajeAmigable())
+                                    }
+                            }
                         }
                     }
                 },
@@ -172,21 +209,30 @@ fun LoginScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable { navController.navigate(Routes.REGISTRO) }
+                    modifier = Modifier.clickable { navController.navigate(Registro) }
                 )
             }
 
             Spacer(Modifier.height(24.dp))
             Spacer(Modifier.height(12.dp))
 
-            TextButton(onClick = { mostrarUsuarios = true }) {
-                Text("Ver usuarios de prueba (demo)")
+            TextButton(onClick = {
+                mostrarUsuarios = true
+                scope.launch {
+                    cargandoUsuarios = true
+                    AuthRepository.obtenerUsuarios()
+                        .onSuccess { usuariosFirebase = it }
+                        .onFailure { error -> snackbarHostState.showSnackbar(error.mensajeAmigable()) }
+                    cargandoUsuarios = false
+                }
+            }) {
+                Text("Ver usuarios registrados")
             }
 
             Spacer(Modifier.height(12.dp))
         }
     }
-
+// se muestra el array de usuarios simulados, donde tambien se guarda los nuevos usuarios registrados desde la app
     if (mostrarUsuarios) {
         AlertDialog(
             onDismissRequest = { mostrarUsuarios = false },
@@ -197,22 +243,40 @@ fun LoginScreen(
             text = {
                 Column {
                     Text(
-                        "Misma contraseña de prueba para todos los usuarios: clave1234",
+                        "Usuarios registrados en Firebase (lectura en tiempo real).",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(10.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Text("Nombre", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
-                        Text("Correo", modifier = Modifier.weight(1.3f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
-                        Text("Grado", modifier = Modifier.weight(0.8f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
-                    }
-                    Spacer(Modifier.padding(vertical = 6.dp))
-                    UsuariosStore.usuarios.forEach { u ->
-                        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                            Text(u.nombre, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                            Text(u.correo, modifier = Modifier.weight(1.3f), style = MaterialTheme.typography.bodySmall)
-                            Text(u.gradoAuditivo, modifier = Modifier.weight(0.8f), style = MaterialTheme.typography.bodySmall)
+
+                    when {
+                        cargandoUsuarios -> {
+                            Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                        usuariosFirebase.isEmpty() -> {
+                            Text(
+                                "Aún no hay usuarios registrados.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        else -> {
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                Text("Nombre", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                                Text("Correo", modifier = Modifier.weight(1.3f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                                Text("Grado", modifier = Modifier.weight(0.8f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                            }
+                            Spacer(Modifier.padding(vertical = 6.dp))
+                            LazyColumn(modifier = Modifier.heightIn(max = 260.dp)) {
+                                items(usuariosFirebase) { u ->
+                                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                        Text(u.nombre, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                                        Text(u.correo, modifier = Modifier.weight(1.3f), style = MaterialTheme.typography.bodySmall)
+                                        Text(u.gradoAuditivo, modifier = Modifier.weight(0.8f), style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
