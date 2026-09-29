@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.saytap.app.data.Usuario
-import com.saytap.app.data.UsuariosStore
 import com.saytap.app.ui.components.SayTapTopBar
 import com.saytap.app.ui.theme.SayTapTheme
 import kotlinx.coroutines.launch
@@ -58,6 +57,8 @@ import com.saytap.app.util.requisitosFaltantesPassword
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
+import com.saytap.app.data.AuthRepository
+import com.saytap.app.util.mensajeAmigable
 
 
 private val gradosAuditivos = listOf("Leve", "Moderada", "Severa")
@@ -287,33 +288,25 @@ fun RegistroScreen(
                             esCorreoInvalido || esPasswordInvalida || noCoinciden -> {
                                 snackbarHostState.showSnackbar("Por favor, corrige los errores en el formulario")
                             }
-                            !contrasena.esPasswordValida() -> {
-                                val faltan = contrasena.requisitosFaltantesPassword().joinToString(", ")
-                                snackbarHostState.showSnackbar("La contraseña debe tener: $faltan")
-                            }
-                            contrasena != confirmarContrasena -> {
-                                snackbarHostState.showSnackbar("Las contraseñas no coinciden")
-                            }
-                            UsuariosStore.existeCorreo(correo) -> {
-                                snackbarHostState.showSnackbar("Ese correo ya está registrado")
-                            }
                             !aceptaTerminos -> {
                                 snackbarHostState.showSnackbar("Debes aceptar los términos y condiciones")
                             }
                             else -> {
-                                UsuariosStore.usuarios.add(
-                                    Usuario(
-                                        nombre = nombre.trim(),
-                                        correo = correo.trim(),
-                                        contrasena = contrasena,
-                                        gradoAuditivo = gradoSeleccionado,
-                                        generoVoz = generoVozSeleccionado
-                                    )
-                                )
-                                snackbarHostState.showSnackbar("Cuenta creada. Ahora puedes iniciar sesión")
-                                navController.popBackStack()
+                                AuthRepository.registrarUsuario(
+                                    correo = correo.trim(),
+                                    contrasena = contrasena,
+                                    nombre = nombre.trim(),
+                                    gradoAuditivo = gradoSeleccionado,
+                                    generoVoz = generoVozSeleccionado
+                                ).onSuccess {
+                                    snackbarHostState.showSnackbar("Cuenta creada. Ahora puedes iniciar sesión")
+                                    navController.popBackStack()
+                                }.onFailure { error ->
+                                    snackbarHostState.showSnackbar(error.mensajeAmigable())
+                                }
                             }
-                        }                    }
+                        }
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()

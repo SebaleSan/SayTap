@@ -52,7 +52,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.saytap.app.data.UsuariosStore
 import com.saytap.app.navigation.Bienvenida
 import com.saytap.app.navigation.Registro
 import com.saytap.app.navigation.Recuperar
@@ -60,6 +59,8 @@ import com.saytap.app.ui.components.SayTapTopBar
 import com.saytap.app.ui.theme.SayTapTheme
 import kotlinx.coroutines.launch
 import com.saytap.app.util.esCorreoValido
+import com.saytap.app.data.AuthRepository
+import com.saytap.app.util.mensajeAmigable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -162,12 +163,23 @@ fun LoginScreen(
 
             Button(
                 onClick = {
-                    val usuario = UsuariosStore.autenticar(correo, contrasena)
                     scope.launch {
-                        if (usuario != null) {
-                            navController.navigate(Bienvenida(nombre = usuario.nombre))
-                        } else {
-                            snackbarHostState.showSnackbar("Correo o contraseña incorrectos")
+                        when {
+                            correo.isBlank() || contrasena.isBlank() -> {
+                                snackbarHostState.showSnackbar("Completa correo y contraseña")
+                            }
+                            esCorreoInvalido -> {
+                                snackbarHostState.showSnackbar("Ingresa un correo con formato válido")
+                            }
+                            else -> {
+                                AuthRepository.iniciarSesion(correo, contrasena)
+                                    .onSuccess { usuario ->
+                                        navController.navigate(Bienvenida(nombre = usuario.nombre))
+                                    }
+                                    .onFailure { error ->
+                                        snackbarHostState.showSnackbar(error.mensajeAmigable())
+                                    }
+                            }
                         }
                     }
                 },
