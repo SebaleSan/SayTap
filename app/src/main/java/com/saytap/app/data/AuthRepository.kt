@@ -2,14 +2,13 @@ package com.saytap.app.data
 
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
-import com.google.firebase.database.database
 import kotlinx.coroutines.tasks.await
 
 
 object AuthRepository {
 
     private val auth = Firebase.auth
-    private val usuariosRef = Firebase.database("https://saytap-8236c-default-rtdb.firebaseio.com").reference.child("usuarios")
+    private val usuariosRef = sayTapDatabase.reference.child("usuarios")
 
     /** Crea la cuenta en Firebase Auth y guarda el perfil en Realtime Database. */
     suspend fun registrarUsuario(
@@ -32,6 +31,7 @@ object AuthRepository {
                 generoVoz = generoVoz
             )
             usuariosRef.child(uid).setValue(usuario).await()
+            FraseRepository.sembrarFrasesPredeterminadas(uid)
             Result.success(usuario)
         } catch (e: Exception) {
             Result.failure(e)
