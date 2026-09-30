@@ -16,3 +16,8 @@ object Recuperar
 @Serializable
 data class Bienvenida(val nombre: String)
 
+@Serializable
+object Escribir
+
+@Serializable
+object Hablar

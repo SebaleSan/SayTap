@@ -9,6 +9,8 @@ import com.saytap.app.ui.screens.BienvenidaScreen
 import com.saytap.app.ui.screens.LoginScreen
 import com.saytap.app.ui.screens.RecuperarPasswordScreen
 import com.saytap.app.ui.screens.RegistroScreen
+import com.saytap.app.ui.screens.EscribirScreen
+import com.saytap.app.ui.screens.HablarScreen
 
 @Composable
 fun AppNavigation(
@@ -48,6 +50,22 @@ fun AppNavigation(
             BienvenidaScreen(
                 navController = navController,
                 nombreUsuario = datos.nombre,
+                textScale = textScale,
+                onTextScaleChange = onTextScaleChange
+            )
+        }
+
+        composable<Escribir> {
+            EscribirScreen(
+                navController = navController,
+                textScale = textScale,
+                onTextScaleChange = onTextScaleChange
+            )
+        }
+
+        composable<Hablar> {
+            HablarScreen(
+                navController = navController,
                 textScale = textScale,
                 onTextScaleChange = onTextScaleChange
             )

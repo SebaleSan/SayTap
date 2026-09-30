@@ -21,11 +21,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -54,14 +59,17 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.saytap.app.data.Categoria
+import com.saytap.app.data.CategoriaRepository
 import com.saytap.app.data.Frase
 import com.saytap.app.data.FraseRepository
+import com.saytap.app.data.SIN_CATEGORIA_ID
 import com.saytap.app.ui.components.SayTapTopBar
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-private val categorias = listOf("Frecuentes", "Saludos", "Emergencia", "Cotidiano")
-private val categoriasEditables = listOf("Saludos", "Emergencia", "Cotidiano")
+/** Identificador de la pestaña calculada "Frecuentes" (no es una Categoria real en Firebase). */
+private const val FRECUENTES_ID = "frecuentes"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,30 +82,44 @@ fun EscribirScreen(
     val uid = if (enPreview) null else Firebase.auth.currentUser?.uid
     val context = LocalContext.current
 
+    var categorias by remember {
+        mutableStateOf(
+            if (enPreview) {
+                listOf(Categoria(id = "1", nombre = "Saludos"), Categoria(id = "2", nombre = "Emergencia"))
+            } else emptyList()
+        )
+    }
     var frases by remember {
         mutableStateOf(
             if (enPreview) {
                 listOf(
-                    Frase(id = "1", texto = "Hola, ¿cómo estás?", categoria = "Saludos", vecesUsada = 5),
-                    Frase(id = "2", texto = "Necesito ayuda, por favor", categoria = "Emergencia", vecesUsada = 2),
-                    Frase(id = "3", texto = "Sí", categoria = "Cotidiano", vecesUsada = 8)
+                    Frase(id = "1", texto = "Hola, ¿cómo estás?", categoriaId = "1", vecesUsada = 5),
+                    Frase(id = "2", texto = "Necesito ayuda, por favor", categoriaId = "2", vecesUsada = 2)
                 )
             } else emptyList()
         )
     }
     var cargando by remember { mutableStateOf(!enPreview) }
-    var categoriaSeleccionada by remember { mutableStateOf(categorias[0]) }
+    var categoriaSeleccionadaId by remember { mutableStateOf(FRECUENTES_ID) }
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
 
     // Estado del diálogo de crear/editar frase
-    var mostrarDialogo by remember { mutableStateOf(false) }
+    var mostrarDialogoFrase by remember { mutableStateOf(false) }
     var fraseEnEdicion by remember { mutableStateOf<Frase?>(null) }
     var textoDialogo by remember { mutableStateOf("") }
-    var categoriaDialogo by remember { mutableStateOf(categoriasEditables[0]) }
-    var guardando by remember { mutableStateOf(false) }
+    var categoriaDialogoId by remember { mutableStateOf(SIN_CATEGORIA_ID) }
+    var categoriaDialogoExpandido by remember { mutableStateOf(false) }
+    var guardandoFrase by remember { mutableStateOf(false) }
 
-    // Estado del diálogo de confirmación de borrado
+    // Estado de confirmación de borrado de frase
     var fraseAEliminar by remember { mutableStateOf<Frase?>(null) }
+
+    // Estado del diálogo de gestión de categorías
+    var mostrarGestionCategorias by remember { mutableStateOf(false) }
+    var nuevaCategoriaNombre by remember { mutableStateOf("") }
+    var categoriaEnEdicionId by remember { mutableStateOf<String?>(null) }
+    var nombreEdicionCategoria by remember { mutableStateOf("") }
+    var categoriaAEliminar by remember { mutableStateOf<Categoria?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -120,7 +142,16 @@ fun EscribirScreen(
         }
     }
 
-    fun recargarFrases() {
+    fun cargarCategorias() {
+        if (uid == null) return
+        scope.launch {
+            CategoriaRepository.obtenerCategorias(uid)
+                .onSuccess { categorias = it }
+                .onFailure { snackbarHostState.showSnackbar("No se pudieron cargar las categorías") }
+        }
+    }
+
+    fun cargarFrases() {
         if (uid == null) return
         scope.launch {
             FraseRepository.obtenerFrases(uid)
@@ -132,9 +163,8 @@ fun EscribirScreen(
     LaunchedEffect(uid) {
         if (uid != null) {
             cargando = true
-            FraseRepository.obtenerFrases(uid)
-                .onSuccess { frases = it }
-                .onFailure { snackbarHostState.showSnackbar("No se pudieron cargar tus frases") }
+            CategoriaRepository.obtenerCategorias(uid).onSuccess { categorias = it }
+            FraseRepository.obtenerFrases(uid).onSuccess { frases = it }
             cargando = false
         }
     }
@@ -155,37 +185,37 @@ fun EscribirScreen(
     fun abrirDialogoCrear() {
         fraseEnEdicion = null
         textoDialogo = ""
-        categoriaDialogo = categoriasEditables[0]
-        mostrarDialogo = true
+        categoriaDialogoId = categorias.firstOrNull()?.id ?: SIN_CATEGORIA_ID
+        mostrarDialogoFrase = true
     }
 
     fun abrirDialogoEditar(frase: Frase) {
         fraseEnEdicion = frase
         textoDialogo = frase.texto
-        categoriaDialogo = frase.categoria
-        mostrarDialogo = true
+        categoriaDialogoId = frase.categoriaId
+        mostrarDialogoFrase = true
     }
 
     fun guardarFrase() {
         if (uid == null || textoDialogo.isBlank()) return
         scope.launch {
-            guardando = true
+            guardandoFrase = true
             val enEdicion = fraseEnEdicion
             val resultado = if (enEdicion != null) {
                 FraseRepository.actualizarFrase(
                     uid,
-                    enEdicion.copy(texto = textoDialogo.trim(), categoria = categoriaDialogo)
+                    enEdicion.copy(texto = textoDialogo.trim(), categoriaId = categoriaDialogoId)
                 )
             } else {
-                FraseRepository.crearFrase(uid, textoDialogo.trim(), categoriaDialogo)
+                FraseRepository.crearFrase(uid, textoDialogo.trim(), categoriaDialogoId)
             }
             resultado.onSuccess {
-                mostrarDialogo = false
-                recargarFrases()
+                mostrarDialogoFrase = false
+                cargarFrases()
             }.onFailure {
                 snackbarHostState.showSnackbar("No se pudo guardar la frase")
             }
-            guardando = false
+            guardandoFrase = false
         }
     }
 
@@ -193,17 +223,63 @@ fun EscribirScreen(
         if (uid == null) return
         scope.launch {
             FraseRepository.eliminarFrase(uid, frase.id)
-                .onSuccess { recargarFrases() }
+                .onSuccess { cargarFrases() }
                 .onFailure { snackbarHostState.showSnackbar("No se pudo eliminar la frase") }
             fraseAEliminar = null
         }
     }
 
-    val frasesMostradas = if (categoriaSeleccionada == "Frecuentes") {
+    fun crearCategoriaNueva() {
+        if (uid == null || nuevaCategoriaNombre.isBlank()) return
+        scope.launch {
+            CategoriaRepository.crearCategoria(uid, nuevaCategoriaNombre.trim())
+                .onSuccess {
+                    nuevaCategoriaNombre = ""
+                    cargarCategorias()
+                }
+                .onFailure { snackbarHostState.showSnackbar("No se pudo crear la categoría") }
+        }
+    }
+
+    fun guardarRenombreCategoria(categoria: Categoria) {
+        if (uid == null || nombreEdicionCategoria.isBlank()) return
+        scope.launch {
+            CategoriaRepository.renombrarCategoria(uid, categoria.copy(nombre = nombreEdicionCategoria.trim()))
+                .onSuccess {
+                    categoriaEnEdicionId = null
+                    cargarCategorias()
+                }
+                .onFailure { snackbarHostState.showSnackbar("No se pudo renombrar la categoría") }
+        }
+    }
+
+    fun eliminarCategoriaConfirmada(categoria: Categoria) {
+        if (uid == null) return
+        scope.launch {
+            CategoriaRepository.eliminarCategoria(uid, categoria.id)
+                .onSuccess {
+                    categoriaAEliminar = null
+                    if (categoriaSeleccionadaId == categoria.id) categoriaSeleccionadaId = FRECUENTES_ID
+                    cargarCategorias()
+                    cargarFrases()
+                }
+                .onFailure { snackbarHostState.showSnackbar("No se pudo eliminar la categoría") }
+        }
+    }
+
+    val pestanas = listOf(
+        Categoria(id = FRECUENTES_ID, nombre = "Frecuentes"),
+        Categoria(id = SIN_CATEGORIA_ID, nombre = "Sin categoría")
+    ) + categorias
+
+    val frasesMostradas = if (categoriaSeleccionadaId == FRECUENTES_ID) {
         frases.sortedByDescending { it.vecesUsada }.take(3)
     } else {
-        frases.filter { it.categoria == categoriaSeleccionada }
+        frases.filter { it.categoriaId == categoriaSeleccionadaId }
     }
+
+    val opcionesCategoriaDialogo = listOf(Categoria(id = SIN_CATEGORIA_ID, nombre = "Sin categoría")) + categorias
+    val nombreCategoriaDialogo = opcionesCategoriaDialogo.firstOrNull { it.id == categoriaDialogoId }?.nombre ?: "Sin categoría"
 
     Scaffold(
         topBar = { SayTapTopBar(textScale = textScale, onScaleChange = onTextScaleChange) },
@@ -216,16 +292,22 @@ fun EscribirScreen(
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
 
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
-            ) {
-                items(categorias) { categoria ->
-                    FilterChip(
-                        selected = categoriaSeleccionada == categoria,
-                        onClick = { categoriaSeleccionada = categoria },
-                        label = { Text(categoria) }
-                    )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    items(pestanas, key = { it.id }) { pestana ->
+                        FilterChip(
+                            selected = categoriaSeleccionadaId == pestana.id,
+                            onClick = { categoriaSeleccionadaId = pestana.id },
+                            label = { Text(pestana.nombre) }
+                        )
+                    }
+                }
+                IconButton(onClick = { mostrarGestionCategorias = true }) {
+                    Icon(Icons.Filled.Settings, contentDescription = "Gestionar categorías")
                 }
             }
 
@@ -245,7 +327,7 @@ fun EscribirScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            if (categoriaSeleccionada == "Frecuentes")
+                            if (categoriaSeleccionadaId == FRECUENTES_ID)
                                 "Aún no has usado ninguna frase."
                             else
                                 "No hay frases en esta categoría todavía.",
@@ -311,9 +393,10 @@ fun EscribirScreen(
         }
     }
 
-    if (mostrarDialogo) {
+    // Diálogo de crear/editar frase
+    if (mostrarDialogoFrase) {
         AlertDialog(
-            onDismissRequest = { if (!guardando) mostrarDialogo = false },
+            onDismissRequest = { if (!guardandoFrase) mostrarDialogoFrase = false },
             title = { Text(if (fraseEnEdicion != null) "Editar frase" else "Nueva frase") },
             text = {
                 Column {
@@ -326,13 +409,30 @@ fun EscribirScreen(
                     Spacer(Modifier.height(12.dp))
                     Text("Categoría", style = MaterialTheme.typography.labelMedium)
                     Spacer(Modifier.height(4.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        categoriasEditables.forEach { categoria ->
-                            FilterChip(
-                                selected = categoriaDialogo == categoria,
-                                onClick = { categoriaDialogo = categoria },
-                                label = { Text(categoria) }
-                            )
+                    ExposedDropdownMenuBox(
+                        expanded = categoriaDialogoExpandido,
+                        onExpandedChange = { categoriaDialogoExpandido = !categoriaDialogoExpandido }
+                    ) {
+                        OutlinedTextField(
+                            value = nombreCategoriaDialogo,
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoriaDialogoExpandido) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = categoriaDialogoExpandido,
+                            onDismissRequest = { categoriaDialogoExpandido = false }
+                        ) {
+                            opcionesCategoriaDialogo.forEach { opcion ->
+                                DropdownMenuItem(
+                                    text = { Text(opcion.nombre) },
+                                    onClick = {
+                                        categoriaDialogoId = opcion.id
+                                        categoriaDialogoExpandido = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -340,30 +440,97 @@ fun EscribirScreen(
             confirmButton = {
                 TextButton(
                     onClick = { guardarFrase() },
-                    enabled = !guardando && textoDialogo.isNotBlank()
+                    enabled = !guardandoFrase && textoDialogo.isNotBlank()
                 ) {
-                    Text(if (guardando) "Guardando..." else "Guardar")
+                    Text(if (guardandoFrase) "Guardando..." else "Guardar")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarDialogo = false }, enabled = !guardando) {
+                TextButton(onClick = { mostrarDialogoFrase = false }, enabled = !guardandoFrase) {
                     Text("Cancelar")
                 }
             }
         )
     }
 
+    // Confirmación de borrado de frase
     fraseAEliminar?.let { frase ->
         AlertDialog(
             onDismissRequest = { fraseAEliminar = null },
             title = { Text("Eliminar frase") },
             text = { Text("¿Seguro que quieres eliminar \"${frase.texto}\"?") },
-            confirmButton = {
-                TextButton(onClick = { eliminarFrase(frase) }) { Text("Eliminar") }
+            confirmButton = { TextButton(onClick = { eliminarFrase(frase) }) { Text("Eliminar") } },
+            dismissButton = { TextButton(onClick = { fraseAEliminar = null }) { Text("Cancelar") } }
+        )
+    }
+
+    // Diálogo de gestión de categorías
+    if (mostrarGestionCategorias) {
+        AlertDialog(
+            onDismissRequest = { mostrarGestionCategorias = false },
+            title = { Text("Gestionar categorías") },
+            text = {
+                Column {
+                    categorias.forEach { categoria ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            if (categoriaEnEdicionId == categoria.id) {
+                                OutlinedTextField(
+                                    value = nombreEdicionCategoria,
+                                    onValueChange = { nombreEdicionCategoria = it },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+                                IconButton(onClick = { guardarRenombreCategoria(categoria) }) {
+                                    Icon(Icons.Filled.Add, contentDescription = "Guardar nombre")
+                                }
+                            } else {
+                                Text(categoria.nombre, modifier = Modifier.weight(1f))
+                                IconButton(onClick = {
+                                    categoriaEnEdicionId = categoria.id
+                                    nombreEdicionCategoria = categoria.nombre
+                                }) {
+                                    Icon(Icons.Filled.Edit, contentDescription = "Renombrar categoría")
+                                }
+                                IconButton(onClick = { categoriaAEliminar = categoria }) {
+                                    Icon(Icons.Filled.Delete, contentDescription = "Eliminar categoría")
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(
+                            value = nuevaCategoriaNombre,
+                            onValueChange = { nuevaCategoriaNombre = it },
+                            label = { Text("Nueva categoría") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = { crearCategoriaNueva() }) {
+                            Icon(Icons.Filled.Add, contentDescription = "Crear categoría")
+                        }
+                    }
+                }
             },
-            dismissButton = {
-                TextButton(onClick = { fraseAEliminar = null }) { Text("Cancelar") }
+            confirmButton = {
+                TextButton(onClick = { mostrarGestionCategorias = false }) { Text("Cerrar") }
             }
+        )
+    }
+
+    // Confirmación de borrado de categoría
+    categoriaAEliminar?.let { categoria ->
+        AlertDialog(
+            onDismissRequest = { categoriaAEliminar = null },
+            title = { Text("Eliminar categoría") },
+            text = { Text("Las frases de \"${categoria.nombre}\" pasarán a \"Sin categoría\". ¿Continuar?") },
+            confirmButton = { TextButton(onClick = { eliminarCategoriaConfirmada(categoria) }) { Text("Eliminar") } },
+            dismissButton = { TextButton(onClick = { categoriaAEliminar = null }) { Text("Cancelar") } }
         )
     }
 }
