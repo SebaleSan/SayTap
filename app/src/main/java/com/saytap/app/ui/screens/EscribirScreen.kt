@@ -165,6 +165,9 @@ fun EscribirScreen(
     LaunchedEffect(uid) {
         if (uid != null) {
             cargando = true
+            CategoriaRepository.obtenerCategorias(uid)
+                .onSuccess { categorias = it }
+                .onFailure { snackbarHostState.showSnackbar("No se pudieron cargar las categorías") }
             FraseRepository.obtenerFrases(uid)
                 .onSuccess { frases = it }
                 .onFailure { snackbarHostState.showSnackbar("No se pudieron cargar tus frases") }
