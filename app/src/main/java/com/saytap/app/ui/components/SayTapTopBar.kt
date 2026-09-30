@@ -24,6 +24,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import com.saytap.app.R
 
 private val opcionesTamano = listOf(
     1f to "Normal",
@@ -43,7 +53,19 @@ fun SayTapTopBar(
     val etiquetaActual = opcionesTamano.firstOrNull { it.first == textScale }?.second ?: "Normal"
 
     TopAppBar(
-        title = { Text(title, fontWeight = FontWeight.Bold) },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(
+                    painter = painterResource(R.drawable.logo_saytap),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(title, fontWeight = FontWeight.Bold)
+            }
+        },
         actions = {
             Box {
                 AssistChip(

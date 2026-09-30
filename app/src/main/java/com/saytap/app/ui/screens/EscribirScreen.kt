@@ -68,6 +68,7 @@ import com.saytap.app.ui.components.SayTapTopBar
 import kotlinx.coroutines.launch
 import java.util.Locale
 import com.saytap.app.data.AuthRepository
+import com.saytap.app.ui.components.CategoriaBanner
 
 /** Identificador de la pestaña calculada "Frecuentes" (no es una Categoria real en Firebase). */
 private const val FRECUENTES_ID = "frecuentes"
@@ -326,6 +327,7 @@ fun EscribirScreen(
                     Icon(Icons.Filled.Settings, contentDescription = "Gestionar categorías")
                 }
             }
+            pestanas.firstOrNull { it.id == categoriaSeleccionadaId }?.let { CategoriaBanner(nombre = it.nombre) }
 
             when {
                 cargando -> {
