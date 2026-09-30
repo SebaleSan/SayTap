@@ -67,6 +67,7 @@ import com.saytap.app.data.SIN_CATEGORIA_ID
 import com.saytap.app.ui.components.SayTapTopBar
 import kotlinx.coroutines.launch
 import java.util.Locale
+import com.saytap.app.data.AuthRepository
 
 /** Identificador de la pestaña calculada "Frecuentes" (no es una Categoria real en Firebase). */
 private const val FRECUENTES_ID = "frecuentes"
@@ -102,6 +103,7 @@ fun EscribirScreen(
     var cargando by remember { mutableStateOf(!enPreview) }
     var categoriaSeleccionadaId by remember { mutableStateOf(FRECUENTES_ID) }
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
+    var generoVoz by remember { mutableStateOf("") }
 
     // Estado del diálogo de crear/editar frase
     var mostrarDialogoFrase by remember { mutableStateOf(false) }
@@ -163,9 +165,20 @@ fun EscribirScreen(
     LaunchedEffect(uid) {
         if (uid != null) {
             cargando = true
-            CategoriaRepository.obtenerCategorias(uid).onSuccess { categorias = it }
-            FraseRepository.obtenerFrases(uid).onSuccess { frases = it }
+            FraseRepository.obtenerFrases(uid)
+                .onSuccess { frases = it }
+                .onFailure { snackbarHostState.showSnackbar("No se pudieron cargar tus frases") }
+            AuthRepository.obtenerUsuario(uid)
+                .onSuccess { generoVoz = it.generoVoz }
             cargando = false
+        }
+    }
+
+    // Ajusta el tono de la voz según la preferencia guardada al registrarse.
+    LaunchedEffect(tts, generoVoz) {
+        when (generoVoz) {
+            "Voz femenina" -> tts?.setPitch(1.2f)
+            "Voz masculina" -> tts?.setPitch(0.85f)
         }
     }
 
