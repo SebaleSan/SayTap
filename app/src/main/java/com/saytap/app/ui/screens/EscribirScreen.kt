@@ -1,0 +1,369 @@
+package com.saytap.app.ui.screens
+
+import android.speech.tts.TextToSpeech
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
+import com.saytap.app.data.Frase
+import com.saytap.app.data.FraseRepository
+import com.saytap.app.ui.components.SayTapTopBar
+import kotlinx.coroutines.launch
+import java.util.Locale
+
+private val categorias = listOf("Frecuentes", "Saludos", "Emergencia", "Cotidiano")
+private val categoriasEditables = listOf("Saludos", "Emergencia", "Cotidiano")
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EscribirScreen(
+    navController: NavController,
+    textScale: Float,
+    onTextScaleChange: (Float) -> Unit
+) {
+    val enPreview = LocalInspectionMode.current
+    val uid = if (enPreview) null else Firebase.auth.currentUser?.uid
+    val context = LocalContext.current
+
+    var frases by remember {
+        mutableStateOf(
+            if (enPreview) {
+                listOf(
+                    Frase(id = "1", texto = "Hola, ¿cómo estás?", categoria = "Saludos", vecesUsada = 5),
+                    Frase(id = "2", texto = "Necesito ayuda, por favor", categoria = "Emergencia", vecesUsada = 2),
+                    Frase(id = "3", texto = "Sí", categoria = "Cotidiano", vecesUsada = 8)
+                )
+            } else emptyList()
+        )
+    }
+    var cargando by remember { mutableStateOf(!enPreview) }
+    var categoriaSeleccionada by remember { mutableStateOf(categorias[0]) }
+    var tts by remember { mutableStateOf<TextToSpeech?>(null) }
+
+    // Estado del diálogo de crear/editar frase
+    var mostrarDialogo by remember { mutableStateOf(false) }
+    var fraseEnEdicion by remember { mutableStateOf<Frase?>(null) }
+    var textoDialogo by remember { mutableStateOf("") }
+    var categoriaDialogo by remember { mutableStateOf(categoriasEditables[0]) }
+    var guardando by remember { mutableStateOf(false) }
+
+    // Estado del diálogo de confirmación de borrado
+    var fraseAEliminar by remember { mutableStateOf<Frase?>(null) }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    DisposableEffect(Unit) {
+        if (enPreview) {
+            onDispose { }
+        } else {
+            val instancia = TextToSpeech(context) { estado ->
+                if (estado == TextToSpeech.SUCCESS) {
+                    tts?.language = Locale("es", "CL")
+                }
+            }
+            instancia.language = Locale("es", "CL")
+            tts = instancia
+            onDispose {
+                instancia.stop()
+                instancia.shutdown()
+            }
+        }
+    }
+
+    fun recargarFrases() {
+        if (uid == null) return
+        scope.launch {
+            FraseRepository.obtenerFrases(uid)
+                .onSuccess { frases = it }
+                .onFailure { snackbarHostState.showSnackbar("No se pudieron cargar tus frases") }
+        }
+    }
+
+    LaunchedEffect(uid) {
+        if (uid != null) {
+            cargando = true
+            FraseRepository.obtenerFrases(uid)
+                .onSuccess { frases = it }
+                .onFailure { snackbarHostState.showSnackbar("No se pudieron cargar tus frases") }
+            cargando = false
+        }
+    }
+
+    fun reproducir(frase: Frase) {
+        tts?.speak(frase.texto, TextToSpeech.QUEUE_FLUSH, null, frase.id)
+        if (uid != null) {
+            scope.launch {
+                FraseRepository.incrementarUso(uid, frase).onSuccess {
+                    frases = frases.map {
+                        if (it.id == frase.id) it.copy(vecesUsada = it.vecesUsada + 1) else it
+                    }
+                }
+            }
+        }
+    }
+
+    fun abrirDialogoCrear() {
+        fraseEnEdicion = null
+        textoDialogo = ""
+        categoriaDialogo = categoriasEditables[0]
+        mostrarDialogo = true
+    }
+
+    fun abrirDialogoEditar(frase: Frase) {
+        fraseEnEdicion = frase
+        textoDialogo = frase.texto
+        categoriaDialogo = frase.categoria
+        mostrarDialogo = true
+    }
+
+    fun guardarFrase() {
+        if (uid == null || textoDialogo.isBlank()) return
+        scope.launch {
+            guardando = true
+            val enEdicion = fraseEnEdicion
+            val resultado = if (enEdicion != null) {
+                FraseRepository.actualizarFrase(
+                    uid,
+                    enEdicion.copy(texto = textoDialogo.trim(), categoria = categoriaDialogo)
+                )
+            } else {
+                FraseRepository.crearFrase(uid, textoDialogo.trim(), categoriaDialogo)
+            }
+            resultado.onSuccess {
+                mostrarDialogo = false
+                recargarFrases()
+            }.onFailure {
+                snackbarHostState.showSnackbar("No se pudo guardar la frase")
+            }
+            guardando = false
+        }
+    }
+
+    fun eliminarFrase(frase: Frase) {
+        if (uid == null) return
+        scope.launch {
+            FraseRepository.eliminarFrase(uid, frase.id)
+                .onSuccess { recargarFrases() }
+                .onFailure { snackbarHostState.showSnackbar("No se pudo eliminar la frase") }
+            fraseAEliminar = null
+        }
+    }
+
+    val frasesMostradas = if (categoriaSeleccionada == "Frecuentes") {
+        frases.sortedByDescending { it.vecesUsada }.take(3)
+    } else {
+        frases.filter { it.categoria == categoriaSeleccionada }
+    }
+
+    Scaffold(
+        topBar = { SayTapTopBar(textScale = textScale, onScaleChange = onTextScaleChange) },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { abrirDialogoCrear() }) {
+                Icon(Icons.Filled.Add, contentDescription = "Agregar frase")
+            }
+        }
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                items(categorias) { categoria ->
+                    FilterChip(
+                        selected = categoriaSeleccionada == categoria,
+                        onClick = { categoriaSeleccionada = categoria },
+                        label = { Text(categoria) }
+                    )
+                }
+            }
+
+            when {
+                cargando -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Spacer(Modifier.height(40.dp))
+                        CircularProgressIndicator()
+                    }
+                }
+                frasesMostradas.isEmpty() -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            if (categoriaSeleccionada == "Frecuentes")
+                                "Aún no has usado ninguna frase."
+                            else
+                                "No hay frases en esta categoría todavía.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                else -> {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        contentPadding = PaddingValues(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(frasesMostradas, key = { it.id }) { frase ->
+                            Card(
+                                onClick = { reproducir(frase) },
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                                modifier = Modifier.fillMaxWidth().height(90.dp)
+                            ) {
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize().padding(12.dp),
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(
+                                            frase.texto,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 3
+                                        )
+                                    }
+                                    Row(modifier = Modifier.align(Alignment.TopEnd).padding(2.dp)) {
+                                        IconButton(
+                                            onClick = { abrirDialogoEditar(frase) },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.Edit,
+                                                contentDescription = "Editar frase",
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { fraseAEliminar = frase },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.Delete,
+                                                contentDescription = "Eliminar frase",
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (mostrarDialogo) {
+        AlertDialog(
+            onDismissRequest = { if (!guardando) mostrarDialogo = false },
+            title = { Text(if (fraseEnEdicion != null) "Editar frase" else "Nueva frase") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = textoDialogo,
+                        onValueChange = { textoDialogo = it },
+                        label = { Text("Texto de la frase") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text("Categoría", style = MaterialTheme.typography.labelMedium)
+                    Spacer(Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        categoriasEditables.forEach { categoria ->
+                            FilterChip(
+                                selected = categoriaDialogo == categoria,
+                                onClick = { categoriaDialogo = categoria },
+                                label = { Text(categoria) }
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { guardarFrase() },
+                    enabled = !guardando && textoDialogo.isNotBlank()
+                ) {
+                    Text(if (guardando) "Guardando..." else "Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogo = false }, enabled = !guardando) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    fraseAEliminar?.let { frase ->
+        AlertDialog(
+            onDismissRequest = { fraseAEliminar = null },
+            title = { Text("Eliminar frase") },
+            text = { Text("¿Seguro que quieres eliminar \"${frase.texto}\"?") },
+            confirmButton = {
+                TextButton(onClick = { eliminarFrase(frase) }) { Text("Eliminar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { fraseAEliminar = null }) { Text("Cancelar") }
+            }
+        )
+    }
+}
