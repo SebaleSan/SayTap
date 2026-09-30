@@ -6,11 +6,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.saytap.app.ui.screens.BienvenidaScreen
+import com.saytap.app.ui.screens.EscribirScreen
+import com.saytap.app.ui.screens.HablarScreen
 import com.saytap.app.ui.screens.LoginScreen
 import com.saytap.app.ui.screens.RecuperarPasswordScreen
 import com.saytap.app.ui.screens.RegistroScreen
-import com.saytap.app.ui.screens.EscribirScreen
-import com.saytap.app.ui.screens.HablarScreen
 
 @Composable
 fun AppNavigation(
@@ -44,7 +44,7 @@ fun AppNavigation(
                 onTextScaleChange = onTextScaleChange
             )
         }
-    //se recibe el dato de nombre para mostrarlo en la siguiente vista
+        //se recibe el dato de nombre para mostrarlo en la siguiente vista
         composable<Bienvenida> { backStackEntry ->
             val datos: Bienvenida = backStackEntry.toRoute()
             BienvenidaScreen(
