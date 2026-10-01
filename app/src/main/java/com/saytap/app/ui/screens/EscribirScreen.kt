@@ -80,6 +80,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import com.saytap.app.data.AuthRepository
+import android.content.Context
+import org.json.JSONArray
+import org.json.JSONObject
 
 /** Identificador de la pestaña calculada "Frecuentes" (no es una Categoria real en Firebase). */
 private const val FRECUENTES_ID = "frecuentes"
@@ -201,9 +204,20 @@ fun EscribirScreen(
     LaunchedEffect(tts, generoVoz) {
         when (generoVoz) {
             "Voz femenina" -> tts?.setPitch(1.2f)
-            "Voz masculina" -> tts?.setPitch(0.85f)
+            "Voz masculina" -> tts?.setPitch(0.8f)
         }
     }
+
+    LaunchedEffect(frases, cargando) {
+        if (!enPreview && !cargando) {
+            val array = JSONArray()
+            frases.forEach {
+                array.put(JSONObject().put("id", it.id).put("texto", it.texto).put("categoriaId", it.categoriaId).put("vecesUsada", it.vecesUsada))
+            }
+            context.getSharedPreferences("saytap_frases", Context.MODE_PRIVATE).edit().putString("frases", array.toString()).apply()
+        }
+    }
+
 
     fun reproducir(frase: Frase) {
         tts?.speak(frase.texto, TextToSpeech.QUEUE_FLUSH, null, frase.id)
