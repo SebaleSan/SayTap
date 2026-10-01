@@ -1,6 +1,7 @@
 package com.saytap.app.ui.screens
 
 import android.speech.tts.TextToSpeech
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -32,6 +34,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,26 +55,42 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import androidx.navigation.NavController
+import androidx.palette.graphics.Palette
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.saytap.app.R
 import com.saytap.app.data.Categoria
 import com.saytap.app.data.CategoriaRepository
 import com.saytap.app.data.Frase
 import com.saytap.app.data.FraseRepository
 import com.saytap.app.data.SIN_CATEGORIA_ID
 import com.saytap.app.ui.components.SayTapTopBar
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import com.saytap.app.data.AuthRepository
-import com.saytap.app.ui.components.CategoriaBanner
 
 /** Identificador de la pestaña calculada "Frecuentes" (no es una Categoria real en Firebase). */
 private const val FRECUENTES_ID = "frecuentes"
+
+/** Ilustración de las categorías base; null para las que no tienen una. */
+private fun imagenDeCategoria(nombre: String): Int? = when (nombre.trim().lowercase()) {
+    "saludos" -> R.drawable.banner_saludos
+    "emergencia" -> R.drawable.banner_emergencia
+    "cotidiano" -> R.drawable.banner_cotidiano
+    else -> null
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -298,6 +317,22 @@ fun EscribirScreen(
     val opcionesCategoriaDialogo = listOf(Categoria(id = SIN_CATEGORIA_ID, nombre = "Sin categoría")) + categorias
     val nombreCategoriaDialogo = opcionesCategoriaDialogo.firstOrNull { it.id == categoriaDialogoId }?.nombre ?: "Sin categoría"
 
+    val nombreCategoria = pestanas.firstOrNull { it.id == categoriaSeleccionadaId }?.nombre ?: ""
+    val imagenCategoria = imagenDeCategoria(nombreCategoria)
+    var muestra by remember { mutableStateOf<Palette.Swatch?>(null) }
+
+    // Extrae con Palette el color dominante de la ilustración de la categoría seleccionada.
+    LaunchedEffect(imagenCategoria) {
+        muestra = if (imagenCategoria == null || enPreview) null else withContext(Dispatchers.Default) {
+            ContextCompat.getDrawable(context, imagenCategoria)?.toBitmap(360, 140)?.let { bitmap ->
+                val paleta = Palette.from(bitmap).generate()
+                paleta.dominantSwatch ?: paleta.vibrantSwatch
+            }
+        }
+    }
+    val colorFondo = muestra?.let { Color(it.rgb) } ?: MaterialTheme.colorScheme.secondaryContainer
+    val colorTexto = muestra?.let { Color(it.bodyTextColor) } ?: MaterialTheme.colorScheme.onSecondaryContainer
+
     Scaffold(
         topBar = { SayTapTopBar(textScale = textScale, onScaleChange = onTextScaleChange) },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -319,7 +354,11 @@ fun EscribirScreen(
                         FilterChip(
                             selected = categoriaSeleccionadaId == pestana.id,
                             onClick = { categoriaSeleccionadaId = pestana.id },
-                            label = { Text(pestana.nombre) }
+                            label = { Text(pestana.nombre) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = colorFondo,
+                                selectedLabelColor = colorTexto
+                            )
                         )
                     }
                 }
@@ -327,7 +366,26 @@ fun EscribirScreen(
                     Icon(Icons.Filled.Settings, contentDescription = "Gestionar categorías")
                 }
             }
-            pestanas.firstOrNull { it.id == categoriaSeleccionadaId }?.let { CategoriaBanner(nombre = it.nombre) }
+            if (imagenCategoria != null) {
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = colorFondo),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    Image(
+                        painter = painterResource(imagenCategoria),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxWidth().height(140.dp)
+                    )
+                    Text(
+                        nombreCategoria,
+                        color = colorTexto,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                    )
+                }
+            }
 
             when {
                 cargando -> {
@@ -365,7 +423,10 @@ fun EscribirScreen(
                         items(frasesMostradas, key = { it.id }) { frase ->
                             Card(
                                 onClick = { reproducir(frase) },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = colorFondo,
+                                    contentColor = colorTexto
+                                ),
                                 modifier = Modifier.fillMaxWidth().height(90.dp)
                             ) {
                                 Box(modifier = Modifier.fillMaxSize()) {

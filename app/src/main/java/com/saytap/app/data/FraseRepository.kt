@@ -20,7 +20,7 @@ object FraseRepository {
                 Frase(texto = "Nos vemos luego", categoriaId = idDe("Saludos")),
                 Frase(texto = "Necesito ayuda, por favor", categoriaId = idDe("Emergencia")),
                 Frase(texto = "Llamen a una ambulancia", categoriaId = idDe("Emergencia")),
-                Frase(texto = "Tengo dificultad para escuchar, ¿puede escribirme en su celular?", categoriaId = idDe("Emergencia")),
+                Frase(texto = "Tengo dificultad para escuchar, ¿puede hablar en mi celular para yo leer lo que dice?", categoriaId = idDe("Emergencia")),
                 Frase(texto = "Sí", categoriaId = idDe("Cotidiano")),
                 Frase(texto = "No", categoriaId = idDe("Cotidiano")),
                 Frase(texto = "Un momento, por favor", categoriaId = idDe("Cotidiano"))
