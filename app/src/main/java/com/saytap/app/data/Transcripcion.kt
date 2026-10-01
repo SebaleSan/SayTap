@@ -1,8 +1,7 @@
 package com.saytap.app.data
 
-data class Frase(
+data class Transcripcion(
     val id: String = "",
     val texto: String = "",
-    val categoriaId: String = "",
-    val vecesUsada: Int = 0
+    val timestamp: Long = 0L
 )

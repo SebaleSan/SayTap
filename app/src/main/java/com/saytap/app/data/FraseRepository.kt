@@ -10,18 +10,20 @@ object FraseRepository {
      * Carga las 9 frases base para un usuario recién registrado.
      * Se llama una sola vez, inmediatamente después de crear la cuenta.
      */
-    suspend fun sembrarFrasesPredeterminadas(uid: String): Result<Unit> {
+    suspend fun sembrarFrasesPredeterminadas(uid: String, categorias: List<Categoria>): Result<Unit> {
         return try {
+            fun idDe(nombre: String) = categorias.first { it.nombre == nombre }.id
+
             val frasesBase = listOf(
-                Frase(texto = "Hola, ¿cómo estás?", categoria = "Saludos"),
-                Frase(texto = "Mucho gusto", categoria = "Saludos"),
-                Frase(texto = "Nos vemos luego", categoria = "Saludos"),
-                Frase(texto = "Necesito ayuda, por favor", categoria = "Emergencia"),
-                Frase(texto = "Llamen a una ambulancia", categoria = "Emergencia"),
-                Frase(texto = "Tengo dificultad para escuchar, ¿puede escribirme en su celular?", categoria = "Emergencia"),
-                Frase(texto = "Sí", categoria = "Cotidiano"),
-                Frase(texto = "No", categoria = "Cotidiano"),
-                Frase(texto = "Un momento, por favor", categoria = "Cotidiano")
+                Frase(texto = "Hola, ¿cómo estás?", categoriaId = idDe("Saludos")),
+                Frase(texto = "Mucho gusto", categoriaId = idDe("Saludos")),
+                Frase(texto = "Nos vemos luego", categoriaId = idDe("Saludos")),
+                Frase(texto = "Necesito ayuda, por favor", categoriaId = idDe("Emergencia")),
+                Frase(texto = "Llamen a una ambulancia", categoriaId = idDe("Emergencia")),
+                Frase(texto = "Tengo dificultad para escuchar, ¿puede hablar en mi celular para yo leer lo que dice?", categoriaId = idDe("Emergencia")),
+                Frase(texto = "Sí", categoriaId = idDe("Cotidiano")),
+                Frase(texto = "No", categoriaId = idDe("Cotidiano")),
+                Frase(texto = "Un momento, por favor", categoriaId = idDe("Cotidiano"))
             )
             frasesBase.forEach { base ->
                 val id = frasesRef(uid).push().key
@@ -46,11 +48,11 @@ object FraseRepository {
     }
 
     /** Crea una frase nueva del usuario. */
-    suspend fun crearFrase(uid: String, texto: String, categoria: String): Result<Frase> {
+    suspend fun crearFrase(uid: String, texto: String, categoriaId: String): Result<Frase> {
         return try {
             val id = frasesRef(uid).push().key
                 ?: throw IllegalStateException("No se pudo generar id de frase")
-            val frase = Frase(id = id, texto = texto, categoria = categoria)
+            val frase = Frase(id = id, texto = texto, categoriaId = categoriaId)
             frasesRef(uid).child(id).setValue(frase).await()
             Result.success(frase)
         } catch (e: Exception) {

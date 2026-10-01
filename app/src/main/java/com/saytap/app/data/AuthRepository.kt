@@ -31,7 +31,10 @@ object AuthRepository {
                 generoVoz = generoVoz
             )
             usuariosRef.child(uid).setValue(usuario).await()
-            FraseRepository.sembrarFrasesPredeterminadas(uid)
+
+            val categorias = CategoriaRepository.sembrarCategoriasPredeterminadas(uid).getOrDefault(emptyList())
+            FraseRepository.sembrarFrasesPredeterminadas(uid, categorias)
+
             Result.success(usuario)
         } catch (e: Exception) {
             Result.failure(e)
@@ -49,6 +52,18 @@ object AuthRepository {
             val usuario = snapshot.getValue(Usuario::class.java)
                 ?: throw IllegalStateException("No se encontró el perfil del usuario")
 
+            Result.success(usuario)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /** lee el perfil de un usuario específico desde Realtime Database. */
+    suspend fun obtenerUsuario(uid: String): Result<Usuario> {
+        return try {
+            val snapshot = usuariosRef.child(uid).get().await()
+            val usuario = snapshot.getValue(Usuario::class.java)
+                ?: throw IllegalStateException("No se encontró el perfil del usuario")
             Result.success(usuario)
         } catch (e: Exception) {
             Result.failure(e)
