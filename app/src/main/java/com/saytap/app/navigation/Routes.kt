@@ -21,3 +21,6 @@ object Escribir
 
 @Serializable
 object Hablar
+
+@Serializable
+object Ajustes
