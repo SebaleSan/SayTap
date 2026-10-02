@@ -83,6 +83,8 @@ import com.saytap.app.data.AuthRepository
 import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
+import androidx.core.content.edit
+import com.saytap.app.ui.components.SayTapBottomBar
 
 /** Identificador de la pestaña calculada "Frecuentes" (no es una Categoria real en Firebase). */
 private const val FRECUENTES_ID = "frecuentes"
@@ -214,7 +216,7 @@ fun EscribirScreen(
             frases.forEach {
                 array.put(JSONObject().put("id", it.id).put("texto", it.texto).put("categoriaId", it.categoriaId).put("vecesUsada", it.vecesUsada))
             }
-            context.getSharedPreferences("saytap_frases", Context.MODE_PRIVATE).edit().putString("frases", array.toString()).apply()
+            context.getSharedPreferences("saytap_frases", Context.MODE_PRIVATE).edit { putString("frases", array.toString()) }
         }
     }
 
@@ -349,6 +351,7 @@ fun EscribirScreen(
 
     Scaffold(
         topBar = { SayTapTopBar(textScale = textScale, onScaleChange = onTextScaleChange) },
+        bottomBar = { SayTapBottomBar(navController) },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = { abrirDialogoCrear() }) {

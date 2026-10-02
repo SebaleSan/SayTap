@@ -11,6 +11,10 @@ import com.saytap.app.ui.screens.HablarScreen
 import com.saytap.app.ui.screens.LoginScreen
 import com.saytap.app.ui.screens.RecuperarPasswordScreen
 import com.saytap.app.ui.screens.RegistroScreen
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 
 @Composable
 fun AppNavigation(
@@ -19,7 +23,12 @@ fun AppNavigation(
 ) {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = Login) {
+    val nombreGuardado = LocalContext.current
+        .getSharedPreferences("saytap_sesion", Context.MODE_PRIVATE)
+        .getString("nombre", null)
+    val inicio: Any = if (Firebase.auth.currentUser != null && nombreGuardado != null) Bienvenida(nombreGuardado) else Login
+
+    NavHost(navController = navController, startDestination = inicio) {
 
         composable<Login> {
             LoginScreen(
