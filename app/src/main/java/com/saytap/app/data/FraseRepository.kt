@@ -98,6 +98,14 @@ object FraseRepository {
     }
 }
 
+/**
+ * Content Provider de solo lectura que expone las frases del usuario a otras apps.
+ *
+ * Se accede mediante la URI `content://com.saytap.app.provider`. Las consultas devuelven un
+ * Cursor con las columnas id, texto, categoriaId y vecesUsada, leídas desde una copia local
+ * (SharedPreferences) que EscribirScreen actualiza cada vez que cambia la lista de frases.
+ * No consulta Firebase. Las operaciones insert, delete y update no están soportadas.
+ */
 class FrasesProvider : ContentProvider() {
     override fun onCreate() = true
 
