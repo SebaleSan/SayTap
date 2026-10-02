@@ -33,6 +33,7 @@ import androidx.navigation.NavController
 import com.saytap.app.navigation.Escribir
 import com.saytap.app.navigation.Hablar
 import com.saytap.app.ui.components.SayTapTopBar
+import com.saytap.app.ui.components.SayTapBottomBar
 
 @Composable
 fun BienvenidaScreen(
@@ -42,7 +43,8 @@ fun BienvenidaScreen(
     onTextScaleChange: (Float) -> Unit
 ) {
     Scaffold(
-        topBar = { SayTapTopBar(textScale = textScale, onScaleChange = onTextScaleChange) }
+        topBar = { SayTapTopBar(textScale = textScale, onScaleChange = onTextScaleChange) },
+        bottomBar = { SayTapBottomBar(navController) }
     ) { padding ->
         Column(
             modifier = Modifier

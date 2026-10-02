@@ -64,6 +64,7 @@ import com.saytap.app.util.mensajeAmigable
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.layout.Box
 import com.saytap.app.data.Usuario
+import androidx.core.content.edit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -179,6 +180,9 @@ fun LoginScreen(
                             else -> {
                                 AuthRepository.iniciarSesion(correo, contrasena)
                                     .onSuccess { usuario ->
+                                        val prefs = navController.context.getSharedPreferences("saytap_sesion", android.content.Context.MODE_PRIVATE)
+                                        if (recordarme) prefs.edit { putString("nombre", usuario.nombre) }
+                                        else prefs.edit { remove("nombre") }
                                         navController.navigate(Bienvenida(nombre = usuario.nombre))
                                     }
                                     .onFailure { error ->

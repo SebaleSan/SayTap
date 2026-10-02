@@ -80,6 +80,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import com.saytap.app.data.AuthRepository
+import android.content.Context
+import org.json.JSONArray
+import org.json.JSONObject
+import androidx.core.content.edit
+import com.saytap.app.ui.components.SayTapBottomBar
 
 /** Identificador de la pestaña calculada "Frecuentes" (no es una Categoria real en Firebase). */
 private const val FRECUENTES_ID = "frecuentes"
@@ -201,9 +206,20 @@ fun EscribirScreen(
     LaunchedEffect(tts, generoVoz) {
         when (generoVoz) {
             "Voz femenina" -> tts?.setPitch(1.2f)
-            "Voz masculina" -> tts?.setPitch(0.85f)
+            "Voz masculina" -> tts?.setPitch(0.8f)
         }
     }
+
+    LaunchedEffect(frases, cargando) {
+        if (!enPreview && !cargando) {
+            val array = JSONArray()
+            frases.forEach {
+                array.put(JSONObject().put("id", it.id).put("texto", it.texto).put("categoriaId", it.categoriaId).put("vecesUsada", it.vecesUsada))
+            }
+            context.getSharedPreferences("saytap_frases", Context.MODE_PRIVATE).edit { putString("frases", array.toString()) }
+        }
+    }
+
 
     fun reproducir(frase: Frase) {
         tts?.speak(frase.texto, TextToSpeech.QUEUE_FLUSH, null, frase.id)
@@ -335,6 +351,7 @@ fun EscribirScreen(
 
     Scaffold(
         topBar = { SayTapTopBar(textScale = textScale, onScaleChange = onTextScaleChange) },
+        bottomBar = { SayTapBottomBar(navController) },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = { abrirDialogoCrear() }) {

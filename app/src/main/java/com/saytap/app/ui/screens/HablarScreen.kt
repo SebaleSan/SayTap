@@ -56,6 +56,7 @@ import com.saytap.app.data.TranscripcionRepository
 import com.saytap.app.ui.components.SayTapTopBar
 import kotlinx.coroutines.launch
 import java.util.Locale
+import com.saytap.app.ui.components.SayTapBottomBar
 
 @Composable
 fun HablarScreen(
@@ -169,6 +170,7 @@ fun HablarScreen(
 
     Scaffold(
         topBar = { SayTapTopBar(textScale = textScale, onScaleChange = onTextScaleChange) },
+        bottomBar = { SayTapBottomBar(navController) },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(

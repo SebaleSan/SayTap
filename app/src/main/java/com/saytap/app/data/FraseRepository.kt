@@ -1,6 +1,13 @@
 package com.saytap.app.data
 
 import kotlinx.coroutines.tasks.await
+import android.content.ContentProvider
+import android.content.ContentValues
+import android.content.Context
+import android.database.Cursor
+import android.database.MatrixCursor
+import android.net.Uri
+import org.json.JSONArray
 
 object FraseRepository {
 
@@ -89,4 +96,32 @@ object FraseRepository {
             Result.failure(e)
         }
     }
+}
+
+/**
+ * Content Provider de solo lectura que expone las frases del usuario a otras apps.
+ *
+ * Se accede mediante la URI `content://com.saytap.app.provider`. Las consultas devuelven un
+ * Cursor con las columnas id, texto, categoriaId y vecesUsada, leídas desde una copia local
+ * (SharedPreferences) que EscribirScreen actualiza cada vez que cambia la lista de frases.
+ * No consulta Firebase. Las operaciones insert, delete y update no están soportadas.
+ */
+class FrasesProvider : ContentProvider() {
+    override fun onCreate() = true
+
+    override fun query(uri: Uri, projection: Array<String>?, selection: String?, selectionArgs: Array<String>?, sortOrder: String?): Cursor {
+        val cursor = MatrixCursor(arrayOf("id", "texto", "categoriaId", "vecesUsada"))
+        val json = context!!.getSharedPreferences("saytap_frases", Context.MODE_PRIVATE).getString("frases", "[]")
+        val array = JSONArray(json)
+        for (i in 0 until array.length()) {
+            val f = array.getJSONObject(i)
+            cursor.addRow(arrayOf(f.getString("id"), f.getString("texto"), f.getString("categoriaId"), f.getInt("vecesUsada")))
+        }
+        return cursor
+    }
+
+    override fun getType(uri: Uri): String = "vnd.android.cursor.dir/vnd.com.saytap.app.frase"
+    override fun insert(uri: Uri, values: ContentValues?): Uri? = null
+    override fun delete(uri: Uri, selection: String?, selectionArgs: Array<String>?) = 0
+    override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<String>?) = 0
 }
