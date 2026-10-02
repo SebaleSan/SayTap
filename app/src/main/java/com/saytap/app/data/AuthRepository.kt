@@ -3,6 +3,7 @@ package com.saytap.app.data
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.tasks.await
+import com.google.firebase.auth.EmailAuthProvider
 
 
 object AuthRepository {
@@ -90,5 +91,37 @@ object AuthRepository {
         }
     }
 
+    /** Actualiza nombre, grado auditivo y género de voz del perfil. */
+    suspend fun actualizarPerfil(uid: String, nombre: String, gradoAuditivo: String, generoVoz: String): Result<Unit> {
+        return try {
+            usuariosRef.child(uid).updateChildren(
+                mapOf("nombre" to nombre, "gradoAuditivo" to gradoAuditivo, "generoVoz" to generoVoz)
+            ).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /** Reautentica con la contraseña, borra todos los datos del usuario y elimina la cuenta. */
+    suspend fun eliminarCuenta(contrasena: String): Result<Unit> {
+        return try {
+            val usuario = auth.currentUser ?: throw IllegalStateException("No hay sesión activa")
+            val correo = usuario.email ?: throw IllegalStateException("La cuenta no tiene correo")
+            val uid = usuario.uid
+            usuario.reauthenticate(EmailAuthProvider.getCredential(correo, contrasena)).await()
+
+            val raiz = sayTapDatabase.reference
+            raiz.child("usuarios").child(uid).removeValue().await()
+            raiz.child("frases").child(uid).removeValue().await()
+            raiz.child("categorias").child(uid).removeValue().await()
+            raiz.child("transcripciones").child(uid).removeValue().await()
+
+            usuario.delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
     fun cerrarSesion() = auth.signOut()
 }
