@@ -51,6 +51,7 @@ import com.saytap.app.util.mensajeAmigable
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.material3.Switch
 
 private val gradosAuditivos = listOf("Leve", "Moderada", "Severa")
 private val generosVoz = listOf("Voz femenina", "Voz masculina")
@@ -71,6 +72,7 @@ fun AjustesScreen(
     var grado by remember { mutableStateOf(gradosAuditivos[1]) }
     var gradoExpandido by remember { mutableStateOf(false) }
     var genero by remember { mutableStateOf(generosVoz[0]) }
+    var vibracion by remember { mutableStateOf(true) }
     var guardando by remember { mutableStateOf(false) }
 
     var mostrarEliminar by remember { mutableStateOf(false) }
@@ -84,6 +86,7 @@ fun AjustesScreen(
                 nombre = it.nombre
                 grado = it.gradoAuditivo
                 genero = it.generoVoz
+                vibracion = it.vibracion
             }
         }
     }
@@ -164,6 +167,13 @@ fun AjustesScreen(
                 }
             }
 
+            Spacer(Modifier.height(12.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Vibrar al reproducir una frase", modifier = Modifier.weight(1f))
+                Switch(checked = vibracion, onCheckedChange = { vibracion = it })
+            }
+
             Spacer(Modifier.height(16.dp))
 
             Button(
@@ -171,7 +181,7 @@ fun AjustesScreen(
                     if (uid != null) {
                         scope.launch {
                             guardando = true
-                            AuthRepository.actualizarPerfil(uid, nombre.trim(), grado, genero)
+                            AuthRepository.actualizarPerfil(uid, nombre.trim(), grado, genero, vibracion)
                                 .onSuccess {
                                     val prefs = context.getSharedPreferences("saytap_sesion", Context.MODE_PRIVATE)
                                     if (prefs.contains("nombre")) prefs.edit { putString("nombre", nombre.trim()) }

@@ -85,6 +85,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import androidx.core.content.edit
 import com.saytap.app.ui.components.SayTapBottomBar
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
 
 /** Identificador de la pestaña calculada "Frecuentes" (no es una Categoria real en Firebase). */
 private const val FRECUENTES_ID = "frecuentes"
@@ -129,6 +132,8 @@ fun EscribirScreen(
     var categoriaSeleccionadaId by remember { mutableStateOf(FRECUENTES_ID) }
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
     var generoVoz by remember { mutableStateOf("") }
+    var vibracion by remember { mutableStateOf(true) }
+    val vibrador = remember { context.getSystemService(Vibrator::class.java) }
 
     // Estado del diálogo de crear/editar frase
     var mostrarDialogoFrase by remember { mutableStateOf(false) }
@@ -197,7 +202,10 @@ fun EscribirScreen(
                 .onSuccess { frases = it }
                 .onFailure { snackbarHostState.showSnackbar("No se pudieron cargar tus frases") }
             AuthRepository.obtenerUsuario(uid)
-                .onSuccess { generoVoz = it.generoVoz }
+                .onSuccess {
+                    generoVoz = it.generoVoz
+                    vibracion = it.vibracion
+                }
             cargando = false
         }
     }
@@ -222,6 +230,13 @@ fun EscribirScreen(
 
 
     fun reproducir(frase: Frase) {
+        if (vibracion) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrador?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                vibrador?.vibrate(50)
+            }
+        }
         tts?.speak(frase.texto, TextToSpeech.QUEUE_FLUSH, null, frase.id)
         if (uid != null) {
             scope.launch {
