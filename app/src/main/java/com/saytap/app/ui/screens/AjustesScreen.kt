@@ -247,7 +247,7 @@ fun AjustesScreen(
                     OutlinedTextField(
                         value = contrasena,
                         onValueChange = { contrasena = it },
-                        label = { Text("Confirma tu contraseña") },
+                        label = { Text("Confirma con tu contraseña") },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth()
