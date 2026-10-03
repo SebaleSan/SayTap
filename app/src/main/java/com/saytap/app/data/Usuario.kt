@@ -6,5 +6,6 @@ data class Usuario(
     val nombre: String = "",
     val correo: String = "",
     val gradoAuditivo: String = "",
-    val generoVoz: String = ""
+    val generoVoz: String = "",
+    val vibracion: Boolean = true,
 )

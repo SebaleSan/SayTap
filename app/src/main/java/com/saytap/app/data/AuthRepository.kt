@@ -17,7 +17,8 @@ object AuthRepository {
         contrasena: String,
         nombre: String,
         gradoAuditivo: String,
-        generoVoz: String
+        generoVoz: String,
+        vibracion: Boolean
     ): Result<Usuario> {
         return try {
             val resultadoAuth = auth.createUserWithEmailAndPassword(correo, contrasena).await()
@@ -29,7 +30,8 @@ object AuthRepository {
                 nombre = nombre,
                 correo = correo,
                 gradoAuditivo = gradoAuditivo,
-                generoVoz = generoVoz
+                generoVoz = generoVoz,
+                vibracion = vibracion
             )
             usuariosRef.child(uid).setValue(usuario).await()
 
@@ -92,10 +94,10 @@ object AuthRepository {
     }
 
     /** Actualiza nombre, grado auditivo y género de voz del perfil. */
-    suspend fun actualizarPerfil(uid: String, nombre: String, gradoAuditivo: String, generoVoz: String): Result<Unit> {
+    suspend fun actualizarPerfil(uid: String, nombre: String, gradoAuditivo: String, generoVoz: String, vibracion: Boolean): Result<Unit> {
         return try {
             usuariosRef.child(uid).updateChildren(
-                mapOf("nombre" to nombre, "gradoAuditivo" to gradoAuditivo, "generoVoz" to generoVoz)
+                mapOf("nombre" to nombre, "gradoAuditivo" to gradoAuditivo, "generoVoz" to generoVoz, "vibracion" to vibracion)
             ).await()
             Result.success(Unit)
         } catch (e: Exception) {
