@@ -8,10 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -21,7 +18,6 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -61,9 +57,6 @@ import kotlinx.coroutines.launch
 import com.saytap.app.util.esCorreoValido
 import com.saytap.app.data.AuthRepository
 import com.saytap.app.util.mensajeAmigable
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.foundation.layout.Box
-import com.saytap.app.data.Usuario
 import androidx.core.content.edit
 import androidx.compose.ui.platform.LocalFocusManager
 
@@ -78,9 +71,6 @@ fun LoginScreen(
     var contrasena by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var recordarme by remember { mutableStateOf(false) }
-    var mostrarUsuarios by remember { mutableStateOf(false) }
-    var usuariosFirebase by remember { mutableStateOf<List<Usuario>>(emptyList()) }
-    var cargandoUsuarios by remember { mutableStateOf(false) }
 
     val esCorreoInvalido = correo.isNotEmpty() && !correo.esCorreoValido()
 
@@ -220,76 +210,11 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(36.dp))
 
-            TextButton(onClick = {
-                mostrarUsuarios = true
-                scope.launch {
-                    cargandoUsuarios = true
-                    AuthRepository.obtenerUsuarios()
-                        .onSuccess { usuariosFirebase = it }
-                        .onFailure { error -> snackbarHostState.showSnackbar(error.mensajeAmigable()) }
-                    cargandoUsuarios = false
-                }
-            }) {
-                Text("Ver usuarios registrados")
-            }
-
-            Spacer(Modifier.height(12.dp))
         }
     }
-// se muestra el array de usuarios simulados, donde tambien se guarda los nuevos usuarios registrados desde la app
-    if (mostrarUsuarios) {
-        AlertDialog(
-            onDismissRequest = { mostrarUsuarios = false },
-            confirmButton = {
-                TextButton(onClick = { mostrarUsuarios = false }) { Text("Cerrar") }
-            },
-            title = { Text("Usuarios registrados") },
-            text = {
-                Column {
-                    Text(
-                        "Usuarios registrados en Firebase (lectura en tiempo real).",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(10.dp))
 
-                    when {
-                        cargandoUsuarios -> {
-                            Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator()
-                            }
-                        }
-                        usuariosFirebase.isEmpty() -> {
-                            Text(
-                                "Aún no hay usuarios registrados.",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                        else -> {
-                            Row(modifier = Modifier.fillMaxWidth()) {
-                                Text("Nombre", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
-                                Text("Correo", modifier = Modifier.weight(1.3f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
-                                Text("Grado", modifier = Modifier.weight(0.8f), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
-                            }
-                            Spacer(Modifier.padding(vertical = 6.dp))
-                            LazyColumn(modifier = Modifier.heightIn(max = 260.dp)) {
-                                items(usuariosFirebase) { u ->
-                                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                        Text(u.nombre, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                                        Text(u.correo, modifier = Modifier.weight(1.3f), style = MaterialTheme.typography.bodySmall)
-                                        Text(u.gradoAuditivo, modifier = Modifier.weight(0.8f), style = MaterialTheme.typography.bodySmall)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        )
-    }
 }
 
 @Preview(showBackground = true)
