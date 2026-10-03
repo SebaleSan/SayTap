@@ -65,6 +65,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.layout.Box
 import com.saytap.app.data.Usuario
 import androidx.core.content.edit
+import androidx.compose.ui.platform.LocalFocusManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,6 +86,7 @@ fun LoginScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
 
     Scaffold(
         topBar = { SayTapTopBar(textScale = textScale, onScaleChange = onTextScaleChange) },
@@ -169,6 +171,7 @@ fun LoginScreen(
 
             Button(
                 onClick = {
+                    focusManager.clearFocus()
                     scope.launch {
                         when {
                             correo.isBlank() || contrasena.isBlank() -> {

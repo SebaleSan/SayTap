@@ -16,6 +16,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.saytap.app.navigation.Bienvenida
 import com.saytap.app.navigation.Escribir
 import com.saytap.app.navigation.Hablar
+import com.saytap.app.navigation.Ajustes
 
 @Composable
 fun SayTapBottomBar(navController: NavController) {
@@ -51,9 +52,13 @@ fun SayTapBottomBar(navController: NavController) {
             label = { Text("Hablar") }
         )
         NavigationBarItem(
-            selected = false,
-            onClick = {},
-            enabled = false,
+            selected = destino?.hasRoute<Ajustes>() == true,
+            onClick = {
+                navController.navigate(Ajustes) {
+                    popUpTo<Bienvenida>()
+                    launchSingleTop = true
+                }
+            },
             icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
             label = { Text("Ajustes") }
         )

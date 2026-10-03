@@ -15,6 +15,7 @@ import android.content.Context
 import androidx.compose.ui.platform.LocalContext
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.saytap.app.ui.screens.AjustesScreen
 
 @Composable
 fun AppNavigation(
@@ -74,6 +75,14 @@ fun AppNavigation(
 
         composable<Hablar> {
             HablarScreen(
+                navController = navController,
+                textScale = textScale,
+                onTextScaleChange = onTextScaleChange
+            )
+        }
+
+        composable<Ajustes> {
+            AjustesScreen(
                 navController = navController,
                 textScale = textScale,
                 onTextScaleChange = onTextScaleChange
