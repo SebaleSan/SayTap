@@ -24,3 +24,6 @@ object Hablar
 
 @Serializable
 object Ajustes
+
+@Serializable
+object BuscarDispositivo

@@ -34,6 +34,9 @@ import com.saytap.app.navigation.Escribir
 import com.saytap.app.navigation.Hablar
 import com.saytap.app.ui.components.SayTapTopBar
 import com.saytap.app.ui.components.SayTapBottomBar
+import com.saytap.app.navigation.BuscarDispositivo
+import androidx.compose.material.icons.filled.Hearing
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 
 @Composable
 fun BienvenidaScreen(
@@ -67,6 +70,58 @@ fun BienvenidaScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
+            Spacer(Modifier.height(20.dp))
+
+            Card(
+                onClick = { navController.navigate(BuscarDispositivo) },
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.Hearing,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Spacer(Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Buscar dispositivo",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            "¿Perdiste tu audífono? Te ayudamos a encontrarlo",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Icon(
+                        Icons.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
             Spacer(Modifier.weight(1f))
 
             AccesoDirectoCard(
@@ -90,6 +145,7 @@ fun BienvenidaScreen(
                 colorContenido = MaterialTheme.colorScheme.onSecondary,
                 onClick = { navController.navigate(Hablar) }
             )
+
 
             Spacer(Modifier.height(8.dp))
         }
