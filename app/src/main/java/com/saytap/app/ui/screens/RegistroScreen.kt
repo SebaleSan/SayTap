@@ -304,7 +304,8 @@ fun RegistroScreen(
                                     contrasena = contrasena,
                                     nombre = nombre.trim(),
                                     gradoAuditivo = gradoSeleccionado,
-                                    generoVoz = generoVozSeleccionado
+                                    generoVoz = generoVozSeleccionado,
+                                    vibracion = alertasVibracion
                                 )
                                 val transcurrido = System.currentTimeMillis() - inicio
                                 if (transcurrido < 300) delay(300 - transcurrido)
