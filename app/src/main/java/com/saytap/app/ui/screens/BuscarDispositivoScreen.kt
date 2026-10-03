@@ -138,7 +138,7 @@ fun BuscarDispositivoScreen(
                     .padding(horizontal = 24.dp, vertical = 16.dp)
             ) {
                 Text(
-                    "Buscar mi audífono",
+                    "Buscar mi dispositivo",
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.primary
                 )

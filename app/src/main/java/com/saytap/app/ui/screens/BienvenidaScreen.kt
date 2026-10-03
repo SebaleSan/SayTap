@@ -65,7 +65,7 @@ fun BienvenidaScreen(
 
             Text(
                 "¿Qué quieres hacer hoy?\n" +
-                        "Desde aqui podras crear frases y escucharlas en vivo.",
+                        "Desde aquí podrás crear frases y escucharlas en vivo.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

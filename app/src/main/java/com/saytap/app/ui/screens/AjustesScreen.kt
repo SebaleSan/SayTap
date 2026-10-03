@@ -50,7 +50,6 @@ import com.saytap.app.ui.components.SayTapTopBar
 import com.saytap.app.util.mensajeAmigable
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import androidx.compose.material3.Switch
 
 private val gradosAuditivos = listOf("Leve", "Moderada", "Severa")
@@ -204,8 +203,6 @@ fun AjustesScreen(
             HorizontalDivider()
             Spacer(Modifier.height(24.dp))
 
-
-            Spacer(Modifier.height(12.dp))
 
             Button(
                 onClick = {
