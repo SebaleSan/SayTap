@@ -37,6 +37,16 @@ import com.saytap.app.ui.components.SayTapBottomBar
 import com.saytap.app.navigation.BuscarDispositivo
 import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
 @Composable
 fun BienvenidaScreen(
@@ -45,6 +55,7 @@ fun BienvenidaScreen(
     textScale: Float,
     onTextScaleChange: (Float) -> Unit
 ) {
+    var mostrarAyuda by remember { mutableStateOf(false) }
     Scaffold(
         topBar = { SayTapTopBar(textScale = textScale, onScaleChange = onTextScaleChange) },
         bottomBar = { SayTapBottomBar(navController) }
@@ -55,11 +66,21 @@ fun BienvenidaScreen(
                 .padding(padding)
                 .padding(horizontal = 24.dp, vertical = 16.dp)
         ) {
-            Text(
-                "¡Hola, $nombreUsuario!",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "¡Hola, $nombreUsuario!",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = { mostrarAyuda = true }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.HelpOutline,
+                        contentDescription = "Ayuda",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
 
             Spacer(Modifier.height(6.dp))
 
@@ -149,6 +170,33 @@ fun BienvenidaScreen(
 
             Spacer(Modifier.height(8.dp))
         }
+    }
+    if (mostrarAyuda) {
+        AlertDialog(
+            onDismissRequest = { mostrarAyuda = false },
+            title = { Text("¿Cómo usar SayTap?") },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    Text("Escribir", style = MaterialTheme.typography.titleSmall)
+                    Text("Toca una frase para escucharla en voz alta. Usa las categorías para filtrar y el botón + para crear tus propias frases.")
+                    Spacer(Modifier.height(12.dp))
+                    Text("Hablar", style = MaterialTheme.typography.titleSmall)
+                    Text("Toca el micrófono y pide a la otra persona que hable. Verás lo que dice escrito en pantalla.")
+                    Spacer(Modifier.height(12.dp))
+                    Text("Buscar dispositivo", style = MaterialTheme.typography.titleSmall)
+                    Text("Presiona Buscar, elige tu dispositivo y sigue la vibración: se acelera a medida que te acercas.")
+                    Spacer(Modifier.height(12.dp))
+                    Text("Ajustes", style = MaterialTheme.typography.titleSmall)
+                    Text("Cambia tus datos, el tipo de voz y la vibración, o cierra sesión.")
+                    Spacer(Modifier.height(12.dp))
+                    Text("Tamaño de texto", style = MaterialTheme.typography.titleSmall)
+                    Text("Usa el botón \"Tamaño de texto\" de la barra superior para agrandar las letras.")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { mostrarAyuda = false }) { Text("Entendido") }
+            }
+        )
     }
 }
 
