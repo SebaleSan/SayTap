@@ -80,6 +80,4 @@ Consulta del Content Provider desde fuera de la app:
 adb shell content query --uri content://com.saytap.app.provider
 ```
 
-## Autor
 
-**Sebastián Santander** · Ingeniería en Desarrollo de Software, Duoc UC Online
